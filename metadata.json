@@ -1,0 +1,6 @@
+{
+  "name": "ConvertOneAI",
+  "description": "Convert Word (.docx) and PDF documents to clean Markdown (.md) with exceptionally accurate classic & AI-powered conversion models, live previewing, and an integrated editor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

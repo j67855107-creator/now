@@ -1,0 +1,16 @@
+[
+  {
+    "id": "msg-1",
+    "name": "Marc Dupond",
+    "email": "marc.du@example.fr",
+    "message": "Bonjour! Do you support batch docx files in a single session?",
+    "timestamp": "2026-07-02T16:53:42.899Z"
+  },
+  {
+    "id": "msg-2",
+    "name": "Audrey Laurent",
+    "email": "audrey@creativecorp.com",
+    "message": "Is PDF formatting retained, especially bullet points and indented code blocks?",
+    "timestamp": "2026-07-02T12:53:42.899Z"
+  }
+]

@@ -1,0 +1,159 @@
+{
+  "totalConversions": 195,
+  "classicConversions": 195,
+  "aiConversions": 0,
+  "totalSizeKb": 43658,
+  "averageDurationMs": 2615,
+  "recentLogs": [
+    {
+      "id": "log-1783022210050",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1723,
+      "timestamp": "2026-07-02T19:56:50.050Z"
+    },
+    {
+      "id": "log-1783021946063",
+      "fileName": "_______________________________2026__AutoRecovered_.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 47.7,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1235,
+      "timestamp": "2026-07-02T19:52:26.063Z"
+    },
+    {
+      "id": "log-1783021907618",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 3613,
+      "timestamp": "2026-07-02T19:51:47.618Z"
+    },
+    {
+      "id": "log-1783021515670",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 2744,
+      "timestamp": "2026-07-02T19:45:15.670Z"
+    },
+    {
+      "id": "log-1783021322805",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 3446,
+      "timestamp": "2026-07-02T19:42:02.805Z"
+    },
+    {
+      "id": "log-1783020845303",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 3737,
+      "timestamp": "2026-07-02T19:34:05.303Z"
+    },
+    {
+      "id": "log-1783020454565",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1355,
+      "timestamp": "2026-07-02T19:27:34.565Z"
+    },
+    {
+      "id": "log-1783020374475",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 3243,
+      "timestamp": "2026-07-02T19:26:14.475Z"
+    },
+    {
+      "id": "log-1783020191087",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 11961,
+      "timestamp": "2026-07-02T19:23:11.087Z"
+    },
+    {
+      "id": "log-1783018972708",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1398,
+      "timestamp": "2026-07-02T19:02:52.709Z"
+    },
+    {
+      "id": "log-1783018842881",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 2166,
+      "timestamp": "2026-07-02T19:00:42.881Z"
+    },
+    {
+      "id": "log-1",
+      "fileName": "Q3_Strategic_Plan.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 240,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1250,
+      "timestamp": "2026-07-02T18:35:42.901Z"
+    },
+    {
+      "id": "log-2",
+      "fileName": "Financial_Report_v2.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 1820,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 420,
+      "timestamp": "2026-07-02T18:11:42.902Z"
+    },
+    {
+      "id": "log-3",
+      "fileName": "Developer_Quickstart_Guide.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 750,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1610,
+      "timestamp": "2026-07-02T16:48:42.902Z"
+    },
+    {
+      "id": "log-4",
+      "fileName": "FAQ_Draft.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 124,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 85,
+      "timestamp": "2026-07-02T15:43:42.902Z"
+    }
+  ]
+}

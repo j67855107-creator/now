@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+.watermark-container {
+  position: relative;
+  display: inline-block;
+}
+.watermark-container::after {
+  content: "© ConvertOneAI.com";
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  color: white;
+  font-size: 12px;
+  opacity: 0.7;
+  text-shadow: 1px 1px 2px black;
+  pointer-events: none;
+}
