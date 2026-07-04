@@ -14,7 +14,7 @@ import rateLimit from "express-rate-limit";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Security Middleware (Helmet)
 app.use(helmet({
@@ -38,13 +38,25 @@ const convertLimiter = rateLimit({
   message: { error: "Conversion limit reached. Please try again later." }
 });
 
-// Enable CORS for frontend deployment on Vercel
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"]
-  : "*";
+// Enable CORS for frontend deployment on Vercel and the Railway backend
+const isAllowedOrigin = (origin: string | undefined) => {
+  if (!origin) return true;
+
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000"
+  ].filter(Boolean) as string[];
+
+  if (allowedOrigins.includes(origin)) return true;
+
+  return /https:\/\/.*\.vercel\.app$/i.test(origin) || /https:\/\/.*\.up\.railway\.app$/i.test(origin);
+};
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: isAllowedOrigin,
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "x-api-key"]
 }));

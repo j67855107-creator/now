@@ -36,7 +36,7 @@ var import_helmet = __toESM(require("helmet"), 1);
 var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 import_dotenv.default.config();
 var app = (0, import_express.default)();
-var PORT = 3e3;
+var PORT = Number(process.env.PORT) || 3e3;
 app.use((0, import_helmet.default)({
   contentSecurityPolicy: false,
   // Handled by frontend or configured for API
@@ -60,9 +60,20 @@ var convertLimiter = (0, import_express_rate_limit.default)({
   legacyHeaders: false,
   message: { error: "Conversion limit reached. Please try again later." }
 });
-var allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"] : "*";
+var isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000"
+  ].filter(Boolean);
+  if (allowedOrigins.includes(origin)) return true;
+  return /https:\/\/.*\.vercel\.app$/i.test(origin) || /https:\/\/.*\.up\.railway\.app$/i.test(origin);
+};
 app.use((0, import_cors.default)({
-  origin: allowedOrigins,
+  origin: isAllowedOrigin,
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "x-api-key"]
 }));
