@@ -4,6 +4,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -20,8 +24,15 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // server.ts
+var server_exports = {};
+__export(server_exports, {
+  createApp: () => createApp,
+  startServer: () => startServer
+});
+module.exports = __toCommonJS(server_exports);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_vite = require("vite");
@@ -36,7 +47,9 @@ var import_helmet = __toESM(require("helmet"), 1);
 var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 import_dotenv.default.config();
 var app = (0, import_express.default)();
-var PORT = Number(process.env.PORT) || 3e3;
+var DEFAULT_PORT = Number.parseInt(process.env.PORT || "3000", 10) || 3e3;
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use((0, import_helmet.default)({
   contentSecurityPolicy: false,
   // Handled by frontend or configured for API
@@ -191,6 +204,9 @@ function recordConversion(fileName, fileExt, fileSizeKb, mode, status, durationM
     console.error("Failed to write updated stats to file:", err);
   }
 }
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", service: "convertoneai-api", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+});
 app.get("/api/stats", apiLimiter, requireApiKey, (req, res) => {
   cleanOldSubmissions();
   res.json({
@@ -438,7 +454,14 @@ app.get("/sitemap.xml", (req, res) => {
   </url>
 </urlset>`);
 });
-async function startServer() {
+app.use((err, req, res, next) => {
+  console.error("Unhandled server error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+function createApp() {
+  return app;
+}
+async function startServer(port = DEFAULT_PORT) {
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
@@ -446,27 +469,27 @@ async function startServer() {
     });
     app.use(vite.middlewares);
     console.log("Vite development middleware mounted successfully.");
-  } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    app.use(import_express.default.static(distPath, {
-      maxAge: "1y",
-      immutable: true,
-      setHeaders: (res, path2) => {
-        if (path2.endsWith(".html")) {
-          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-        } else {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        }
-      }
-    }));
-    app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
-    });
-    console.log("Production static handler mounted for /dist with advanced HTTP caching headers.");
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`ConvertOneAI server listening on port ${PORT}`);
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`ConvertOneAI server listening on port ${port}`);
+  });
+  const shutdown = (signal) => {
+    console.log(`Received ${signal}, shutting down gracefully.`);
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+  return server;
+}
+if (process.env.NODE_ENV !== "test") {
+  void startServer().catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
   });
 }
-startServer();
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  createApp,
+  startServer
+});
 //# sourceMappingURL=server.cjs.map

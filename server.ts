@@ -1,7 +1,6 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import mfromNode from "mammoth";
+import mammoth from "mammoth";
 import TurndownService from "turndown";
 import { PDFParse } from "pdf-parse";
 import dotenv from "dotenv";
@@ -14,7 +13,10 @@ import rateLimit from "express-rate-limit";
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const DEFAULT_PORT = Number.parseInt(process.env.PORT || "3000", 10) || 3000;
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
 
 // Security Middleware (Helmet)
 app.use(helmet({
@@ -228,6 +230,10 @@ function recordConversion(fileName: string, fileExt: string, fileSizeKb: number,
   }
 }
 
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({ status: "ok", service: "convertoneai-api", timestamp: new Date().toISOString() });
+});
+
 // JSON endpoint for analytics stats
 app.get("/api/stats", apiLimiter, requireApiKey, (req: Request, res: Response) => {
   // Call cleanup before returning
@@ -398,9 +404,9 @@ app.post("/api/convert", convertLimiter, requireApiKey, async (req: Request, res
       }
       
       // Let's format the plain text basic styling for classic route
-      const lines = text.split("\n").map(l => l.trim());
+      const lines = text.split("\n").map((l: string) => l.trim());
       let inList = false;
-      const formattedLines = lines.map((line) => {
+      const formattedLines = lines.map((line: string) => {
         if (!line) return "";
         // Guess headings
         if (line.length < 60 && /^[A-Z0-9\s.,:-]{4,30}$/i.test(line)) {
@@ -424,7 +430,7 @@ app.post("/api/convert", convertLimiter, requireApiKey, async (req: Request, res
       // Classic Word (.docx) conversion
       let html = "";
       try {
-        const result = await mfromNode.convertToHtml({ buffer });
+        const result = await mammoth.convertToHtml({ buffer });
         html = result.value;
       } catch (docxErr: any) {
         throw new Error(
@@ -526,9 +532,21 @@ app.get("/sitemap.xml", (req: Request, res: Response) => {
 </urlset>`);
 });
 
-// Setup Vite Dev Server / Static files handler
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("Unhandled server error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
+export function createApp() {
+  return app;
+}
+
+export async function startServer(port = DEFAULT_PORT) {
+  const isRailway = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_ENVIRONMENT_NAME);
+  const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev" || (!process.env.NODE_ENV && !isRailway);
+
+  if (isDevelopment) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -536,29 +554,27 @@ async function startServer() {
     app.use(vite.middlewares);
     console.log("Vite development middleware mounted successfully.");
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath, {
-      maxAge: "1y",
-      immutable: true,
-      setHeaders: (res, path) => {
-        if (path.endsWith(".html")) {
-          // Do not cache html files to ensure instant delivery of updates
-          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-        } else {
-          // Cache js, css, images, fonts and media of content-hash names for 1 year
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        }
-      }
-    }));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-    console.log("Production static handler mounted for /dist with advanced HTTP caching headers.");
+    console.log("Running in production mode without Vite middleware.");
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`ConvertOneAI server listening on port ${PORT}`);
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`ConvertOneAI server listening on port ${port}`);
   });
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    console.log(`Received ${signal}, shutting down gracefully.`);
+    server.close(() => process.exit(0));
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+
+  return server;
 }
 
-startServer();
+if (process.env.NODE_ENV !== "test") {
+  void startServer().catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  });
+}
