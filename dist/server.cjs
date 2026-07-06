@@ -42,9 +42,11 @@ var import_compression = __toESM(require("compression"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
 var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
-import_dotenv.default.config();
+if (process.env.NODE_ENV !== "production") {
+  import_dotenv.default.config();
+}
 var app = (0, import_express.default)();
-var PORT = parseInt(process.env.PORT || "3000", 10);
+var PORT = parseInt(String(process.env.PORT ?? "")) || 3e3;
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(
@@ -74,13 +76,11 @@ var convertLimiter = (0, import_express_rate_limit.default)({
 });
 var isAllowedOrigin = (origin) => {
   if (!origin) return true;
-  const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    "http://localhost:5173",
-    "http://localhost:3000"
-  ].filter(Boolean);
-  if (allowedOrigins.includes(origin)) return true;
-  return /https:\/\/.*\.vercel\.app$/i.test(origin);
+  const explicit = [process.env.FRONTEND_URL].filter(Boolean);
+  const local = ["http://localhost:5173", "http://localhost:3000"];
+  if (explicit.includes(origin) || local.includes(origin)) return true;
+  if (/https:\/\/.+\.vercel\.app$/i.test(origin)) return true;
+  return false;
 };
 app.use(
   (0, import_cors.default)({
@@ -93,7 +93,7 @@ app.use(
 app.use((0, import_compression.default)());
 app.use(import_express.default.json({ limit: "15mb" }));
 app.use(import_express.default.urlencoded({ limit: "15mb", extended: true }));
-var PERSIST_DIR = process.env.PERSIST_DIR || (process.platform === "win32" ? import_path.default.join(process.cwd(), "tmp") : "/tmp");
+var PERSIST_DIR = process.env.PERSIST_DIR || import_path.default.join(process.cwd(), process.platform === "win32" ? "tmp" : "tmp");
 if (!import_fs.default.existsSync(PERSIST_DIR)) {
   import_fs.default.mkdirSync(PERSIST_DIR, { recursive: true });
 }
@@ -233,6 +233,16 @@ function cleanOldSubmissions() {
 cleanOldSubmissions();
 setInterval(cleanOldSubmissions, 60 * 60 * 1e3);
 var stats = loadStats();
+app.get("/", (req, res) => {
+  res.status(200).type("text/plain").send("ConvertOneAI API is running. Check /api/health");
+});
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "convertoneai-api",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
+});
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
@@ -348,6 +358,7 @@ function createApp() {
   return app;
 }
 async function startServer(port = PORT) {
+  const runtimePort = parseInt(String(process.env.PORT ?? "")) || port;
   const isRailway = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_ENVIRONMENT_NAME);
   const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev" || !process.env.NODE_ENV && !isRailway;
   if (isDevelopment) {
@@ -361,8 +372,8 @@ async function startServer(port = PORT) {
   } else {
     console.log("Running in production mode without Vite middleware.");
   }
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`ConvertOneAI server listening on port ${port}`);
+  const server = app.listen(runtimePort, "0.0.0.0", () => {
+    console.log(`ConvertOneAI server listening on port ${runtimePort}`);
     console.log(`Persistence dir: ${PERSIST_DIR}`);
     console.log(`SUBMISSIONS_FILE: ${SUBMISSIONS_FILE}`);
     console.log(`STATS_FILE: ${STATS_FILE}`);

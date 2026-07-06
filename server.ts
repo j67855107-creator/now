@@ -3,6 +3,8 @@ import path from "path";
 import mammoth from "mammoth";
 import TurndownService from "turndown";
 import * as pdfParseNS from "pdf-parse";
+
+
 import dotenv from "dotenv";
 import fs from "fs";
 import compression from "compression";
@@ -10,11 +12,16 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-dotenv.config();
+// Only load .env locally. In Railway/production, env vars are injected by the platform.
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const app = express();
 
-const PORT = parseInt(process.env.PORT || "3000", 10);
+// Use Railway-provided PORT if available; never hardcode for container networking.
+const PORT = parseInt(String(process.env.PORT ?? "")) || 3000;
+
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
@@ -46,14 +53,18 @@ const convertLimiter = rateLimit({
 // Enable CORS for frontend deployment on Vercel and the Railway backend
 const isAllowedOrigin = (origin: string | undefined) => {
   if (!origin) return true;
-  const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    "http://localhost:5173",
-    "http://localhost:3000",
-  ].filter(Boolean) as string[];
-  if (allowedOrigins.includes(origin)) return true;
-  return /https:\/\/.*\.vercel\.app$/i.test(origin);
+
+  const explicit = [process.env.FRONTEND_URL].filter(Boolean) as string[];
+  const local = ["http://localhost:5173", "http://localhost:3000"];
+
+  // Allow the exact Vercel URL AND any subdomain under vercel.app
+  // e.g. https://foo.vercel.app and https://bar.foo.vercel.app
+  if (explicit.includes(origin) || local.includes(origin)) return true;
+  if (/https:\/\/.+\.vercel\.app$/i.test(origin)) return true;
+
+  return false;
 };
+
 
 app.use(
   cors({
@@ -74,10 +85,10 @@ app.use(express.urlencoded({ limit: "15mb", extended: true }));
 // Path configurations for persistent local storage files
 // In many container environments process.cwd() may be read-only. Never allow
 // persistence failures to crash startup.
-const PERSIST_DIR = process.env.PERSIST_DIR || 
-  (process.platform === "win32" 
-    ? path.join(process.cwd(), "tmp")
-    : "/tmp");
+const PERSIST_DIR =
+  process.env.PERSIST_DIR || 
+  path.join(process.cwd(), process.platform === "win32" ? "tmp" : "tmp");
+
 
 if (!fs.existsSync(PERSIST_DIR)) {
   fs.mkdirSync(PERSIST_DIR, { recursive: true });
@@ -85,10 +96,17 @@ if (!fs.existsSync(PERSIST_DIR)) {
 const SUBMISSIONS_FILE = path.join(PERSIST_DIR, "contact_submissions.json");
 const STATS_FILE = path.join(PERSIST_DIR, "stats.json");
 
-// Provide a callable `pdfParse` that works with both ESM default and CommonJS exports
-const pdfParse: (buffer: Buffer) => Promise<any> = ((pdfParseNS as any).default || pdfParseNS) as any;
+// pdf-parse default export is callable: pdfParse(buffer)
+// (esbuild + CJS/ESM interop can otherwise break the constructor-style usage)
+// pdf-parse is loaded via default export (callable): pdfParse(buffer)
+// If bundling/interop changes, this keeps the reference alive for tree-shaking.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _pdfParseType = (pdfParseNS as any).default || (pdfParseNS as any);
+
+
 
 // Analytics and Metrics State (In-memory persistent log for the session)
+
 // API Key Protection Middleware
 const requireApiKey = (
   req: express.Request,
@@ -309,6 +327,18 @@ function recordConversion(
   }
 }
 
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).type("text/plain").send("ConvertOneAI API is running. Check /api/health");
+});
+
+app.get("/health", (req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    service: "convertoneai-api",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({
     status: "ok",
@@ -316,6 +346,7 @@ app.get("/api/health", (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
 
 app.get("/api/stats", apiLimiter, requireApiKey, (req: Request, res: Response) => {
   cleanOldSubmissions();
@@ -438,8 +469,12 @@ export function createApp() {
 }
 
 export async function startServer(port = PORT) {
+  // Prefer Railway/runtime PORT if supplied.
+  const runtimePort = parseInt(String(process.env.PORT ?? "")) || port;
+
   const isRailway = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_ENVIRONMENT_NAME);
   const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev" || (!process.env.NODE_ENV && !isRailway);
+
 
   if (isDevelopment) {
     const { createServer: createViteServer } = await import("vite");
@@ -453,8 +488,9 @@ export async function startServer(port = PORT) {
     console.log("Running in production mode without Vite middleware.");
   }
 
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`ConvertOneAI server listening on port ${port}`);
+  const server = app.listen(runtimePort, "0.0.0.0", () => {
+    console.log(`ConvertOneAI server listening on port ${runtimePort}`);
+
     console.log(`Persistence dir: ${PERSIST_DIR}`);
     console.log(`SUBMISSIONS_FILE: ${SUBMISSIONS_FILE}`);
     console.log(`STATS_FILE: ${STATS_FILE}`);
