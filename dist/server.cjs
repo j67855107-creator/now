@@ -35,10 +35,7 @@ __export(server_exports, {
 module.exports = __toCommonJS(server_exports);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
-var import_vite = require("vite");
-var import_mammoth = __toESM(require("mammoth"), 1);
-var import_turndown = __toESM(require("turndown"), 1);
-var import_pdf_parse = require("pdf-parse");
+var pdfParseNS = __toESM(require("pdf-parse"), 1);
 var import_dotenv = __toESM(require("dotenv"), 1);
 var import_fs = __toESM(require("fs"), 1);
 var import_compression = __toESM(require("compression"), 1);
@@ -47,14 +44,16 @@ var import_helmet = __toESM(require("helmet"), 1);
 var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 import_dotenv.default.config();
 var app = (0, import_express.default)();
-var DEFAULT_PORT = Number.parseInt(process.env.PORT || "3000", 10) || 3e3;
+var PORT = parseInt(process.env.PORT || "3000", 10);
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
-app.use((0, import_helmet.default)({
-  contentSecurityPolicy: false,
-  // Handled by frontend or configured for API
-  crossOriginEmbedderPolicy: false
-}));
+app.use(
+  (0, import_helmet.default)({
+    contentSecurityPolicy: false,
+    // Handled by frontend or configured for API
+    crossOriginEmbedderPolicy: false
+  })
+);
 var apiLimiter = (0, import_express_rate_limit.default)({
   windowMs: 15 * 60 * 1e3,
   // 15 minutes
@@ -78,23 +77,28 @@ var isAllowedOrigin = (origin) => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000"
+    "http://localhost:3000"
   ].filter(Boolean);
   if (allowedOrigins.includes(origin)) return true;
-  return /https:\/\/.*\.vercel\.app$/i.test(origin) || /https:\/\/.*\.up\.railway\.app$/i.test(origin);
+  return /https:\/\/.*\.vercel\.app$/i.test(origin);
 };
-app.use((0, import_cors.default)({
-  origin: isAllowedOrigin,
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "x-api-key"]
-}));
+app.use(
+  (0, import_cors.default)({
+    origin: isAllowedOrigin,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-api-key"],
+    credentials: true
+  })
+);
 app.use((0, import_compression.default)());
 app.use(import_express.default.json({ limit: "15mb" }));
 app.use(import_express.default.urlencoded({ limit: "15mb", extended: true }));
-var SUBMISSIONS_FILE = import_path.default.join(process.cwd(), "contact_submissions.json");
-var STATS_FILE = import_path.default.join(process.cwd(), "stats.json");
+var PERSIST_DIR = process.env.PERSIST_DIR || (process.platform === "win32" ? import_path.default.join(process.cwd(), "tmp") : "/tmp");
+if (!import_fs.default.existsSync(PERSIST_DIR)) {
+  import_fs.default.mkdirSync(PERSIST_DIR, { recursive: true });
+}
+var SUBMISSIONS_FILE = import_path.default.join(PERSIST_DIR, "contact_submissions.json");
+var STATS_FILE = import_path.default.join(PERSIST_DIR, "stats.json");
 var requireApiKey = (req, res, next) => {
   const allowedKey = process.env.API_PROTECTION_KEY || "WN3FBAF2GYF";
   const apiKey = req.headers["x-api-key"] || req.query.api_key;
@@ -114,10 +118,23 @@ function loadSubmissions() {
     console.error("Failed to load support submissions from file:", err);
   }
   const defaults = [
-    { id: "msg-1", name: "Marc Dupond", email: "marc.du@example.fr", message: "Bonjour! Do you support batch docx files in a single session?", timestamp: new Date(Date.now() - 1e3 * 60 * 120).toISOString() },
-    { id: "msg-2", name: "Audrey Laurent", email: "audrey@creativecorp.com", message: "Is PDF formatting retained, especially bullet points and indented code blocks?", timestamp: new Date(Date.now() - 1e3 * 60 * 360).toISOString() }
+    {
+      id: "msg-1",
+      name: "Marc Dupond",
+      email: "marc.du@example.fr",
+      message: "Bonjour! Do you support batch docx files in a single session?",
+      timestamp: new Date(Date.now() - 1e3 * 60 * 120).toISOString()
+    },
+    {
+      id: "msg-2",
+      name: "Audrey Laurent",
+      email: "audrey@creativecorp.com",
+      message: "Is PDF formatting retained, especially bullet points and indented code blocks?",
+      timestamp: new Date(Date.now() - 1e3 * 60 * 360).toISOString()
+    }
   ];
   try {
+    import_fs.default.mkdirSync(import_path.default.dirname(SUBMISSIONS_FILE), { recursive: true });
     import_fs.default.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(defaults, null, 2), "utf-8");
   } catch (err) {
     console.error("Failed to write initial submissions file:", err);
@@ -132,10 +149,46 @@ function loadStats() {
     totalSizeKb: 14590,
     averageDurationMs: 650,
     recentLogs: [
-      { id: "log-1", fileName: "Q3_Strategic_Plan.docx", fileExt: "docx", fileSizeKb: 240, mode: "classic", status: "success", durationMs: 1250, timestamp: new Date(Date.now() - 1e3 * 60 * 18).toISOString() },
-      { id: "log-2", fileName: "Financial_Report_v2.pdf", fileExt: "pdf", fileSizeKb: 1820, mode: "classic", status: "success", durationMs: 420, timestamp: new Date(Date.now() - 1e3 * 60 * 42).toISOString() },
-      { id: "log-3", fileName: "Developer_Quickstart_Guide.pdf", fileExt: "pdf", fileSizeKb: 750, mode: "classic", status: "success", durationMs: 1610, timestamp: new Date(Date.now() - 1e3 * 60 * 125).toISOString() },
-      { id: "log-4", fileName: "FAQ_Draft.docx", fileExt: "docx", fileSizeKb: 124, mode: "classic", status: "success", durationMs: 85, timestamp: new Date(Date.now() - 1e3 * 60 * 190).toISOString() }
+      {
+        id: "log-1",
+        fileName: "Q3_Strategic_Plan.docx",
+        fileExt: "docx",
+        fileSizeKb: 240,
+        mode: "classic",
+        status: "success",
+        durationMs: 1250,
+        timestamp: new Date(Date.now() - 1e3 * 60 * 18).toISOString()
+      },
+      {
+        id: "log-2",
+        fileName: "Financial_Report_v2.pdf",
+        fileExt: "pdf",
+        fileSizeKb: 1820,
+        mode: "classic",
+        status: "success",
+        durationMs: 420,
+        timestamp: new Date(Date.now() - 1e3 * 60 * 42).toISOString()
+      },
+      {
+        id: "log-3",
+        fileName: "Developer_Quickstart_Guide.pdf",
+        fileExt: "pdf",
+        fileSizeKb: 750,
+        mode: "classic",
+        status: "success",
+        durationMs: 1610,
+        timestamp: new Date(Date.now() - 1e3 * 60 * 125).toISOString()
+      },
+      {
+        id: "log-4",
+        fileName: "FAQ_Draft.docx",
+        fileExt: "docx",
+        fileSizeKb: 124,
+        mode: "classic",
+        status: "success",
+        durationMs: 85,
+        timestamp: new Date(Date.now() - 1e3 * 60 * 190).toISOString()
+      }
     ]
   };
   try {
@@ -167,7 +220,11 @@ function cleanOldSubmissions() {
   }
   if (hasChanges) {
     try {
-      import_fs.default.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(contactSubmissions, null, 2), "utf-8");
+      import_fs.default.writeFileSync(
+        SUBMISSIONS_FILE,
+        JSON.stringify(contactSubmissions, null, 2),
+        "utf-8"
+      );
     } catch (err) {
       console.error("Failed to write cleaned submissions to file:", err);
     }
@@ -176,36 +233,12 @@ function cleanOldSubmissions() {
 cleanOldSubmissions();
 setInterval(cleanOldSubmissions, 60 * 60 * 1e3);
 var stats = loadStats();
-function recordConversion(fileName, fileExt, fileSizeKb, mode, status, durationMs) {
-  stats.totalConversions += 1;
-  if (status === "success") {
-    stats.totalSizeKb += Math.round(fileSizeKb);
-    stats.classicConversions += 1;
-  }
-  const logCount = stats.recentLogs.length;
-  stats.averageDurationMs = Math.round((stats.averageDurationMs * logCount + durationMs) / (logCount + 1));
-  const newLog = {
-    id: `log-${Date.now()}`,
-    fileName,
-    fileExt,
-    fileSizeKb: Math.round(fileSizeKb * 10) / 10,
-    mode,
-    status,
-    durationMs,
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  };
-  stats.recentLogs.unshift(newLog);
-  if (stats.recentLogs.length > 50) {
-    stats.recentLogs.pop();
-  }
-  try {
-    import_fs.default.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to write updated stats to file:", err);
-  }
-}
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "convertoneai-api", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  res.json({
+    status: "ok",
+    service: "convertoneai-api",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
 });
 app.get("/api/stats", apiLimiter, requireApiKey, (req, res) => {
   cleanOldSubmissions();
@@ -221,181 +254,34 @@ app.get("/api/admin/download", apiLimiter, (req, res) => {
     res.status(401).json({ error: "Unauthorized: Invalid API Key" });
     return;
   }
-  const requestedFile = req.query.file;
+  const requestedFile = String(req.query.file || "").trim();
   if (!requestedFile) {
     res.status(400).json({ error: "Missing required 'file' query parameter." });
     return;
   }
-  if (requestedFile === "stats.json") {
-    if (import_fs.default.existsSync(STATS_FILE)) {
-      res.download(STATS_FILE, "stats.json");
-    } else {
-      res.setHeader("Content-Disposition", "attachment; filename=stats.json");
-      res.setHeader("Content-Type", "application/json");
-      res.send(JSON.stringify(stats, null, 2));
-    }
-  } else if (requestedFile === "contact_submissions.json" || requestedFile === "contact_submission.json") {
-    cleanOldSubmissions();
-    if (import_fs.default.existsSync(SUBMISSIONS_FILE)) {
-      res.download(SUBMISSIONS_FILE, "contact_submission.json");
-    } else {
-      res.setHeader("Content-Disposition", "attachment; filename=contact_submission.json");
-      res.setHeader("Content-Type", "application/json");
-      res.send(JSON.stringify(contactSubmissions, null, 2));
-    }
-  } else {
-    res.status(404).json({ error: "The requested telemetry/support database file does not exist on disk." });
-  }
-});
-app.post("/api/contact", apiLimiter, (req, res) => {
-  const { name, email, message } = req.body;
-  if (!name || !email || !message) {
-    res.status(400).json({ error: "Missing required fields: 'name', 'email', or 'message'." });
-    return;
-  }
-  const newSubmission = {
-    id: `msg-${Date.now()}`,
-    name: name.substring(0, 100),
-    email: email.substring(0, 150),
-    message: message.substring(0, 1500),
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  const allowedFiles = {
+    "stats.json": STATS_FILE,
+    "contact_submissions.json": SUBMISSIONS_FILE
   };
-  cleanOldSubmissions();
-  contactSubmissions.unshift(newSubmission);
-  if (contactSubmissions.length > 50) {
-    contactSubmissions.pop();
-  }
-  try {
-    import_fs.default.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(contactSubmissions, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to write updated contact submissions to file:", err);
-  }
-  res.json({ success: true, message: "Support ticket registered successfully." });
-});
-app.post("/api/convert", convertLimiter, requireApiKey, async (req, res) => {
-  const startTimestamp = Date.now();
-  const { fileData, fileName, mimeType } = req.body;
-  if (!fileData) {
-    res.status(400).json({ error: "Required variable 'fileData' is missing. Please provide a base64 encoded document buffer." });
-    return;
-  }
-  const safeFileName = fileName ? import_path.default.basename(fileName).replace(/[^\w.-]/g, "_") : "document";
-  const fileExt = fileName ? import_path.default.extname(fileName).toLowerCase().substring(1) : "";
-  const allowedExtensions = ["pdf", "docx"];
-  if (!allowedExtensions.includes(fileExt)) {
+  const filePath = allowedFiles[requestedFile];
+  if (!filePath) {
     res.status(400).json({
-      error: `Unsupported file extension (.${fileExt}). ConvertOneAI currently only supports parsing native Word (.docx) and PDF (.pdf) documents.`
+      error: "Unsupported file requested. Allowed values are 'stats.json' or 'contact_submissions.json'."
     });
     return;
   }
-  const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  const cleanedBase64 = fileData.replace(/\s/g, "");
-  if (!base64Regex.test(cleanedBase64)) {
-    res.status(400).json({ error: "Malformed payload error: 'fileData' contains non-base64 characters." });
+  if (!import_fs.default.existsSync(filePath)) {
+    res.status(404).json({ error: `File not found: ${requestedFile}` });
     return;
   }
-  const sizeBytes = Buffer.from(cleanedBase64, "base64").length;
-  const fileSizeKb = sizeBytes / 1024;
-  const MAX_FILE_SIZE_KB = 12 * 1024;
-  if (fileSizeKb > MAX_FILE_SIZE_KB) {
-    res.status(400).json({
-      error: `File transmission blocked: Doc size (${(fileSizeKb / 1024).toFixed(1)}MB) exceeds the secure 12MB limit for volatile server processing.`
-    });
-    return;
-  }
-  try {
-    let outputMarkdown = "";
-    let actualMode = "classic";
-    const buffer = Buffer.from(cleanedBase64, "base64");
-    const isPDF = buffer.length > 4 && buffer[0] === 37 && buffer[1] === 80 && buffer[2] === 68 && buffer[3] === 70;
-    const isDOCX = buffer.length > 4 && buffer[0] === 80 && buffer[1] === 75 && buffer[2] === 3 && buffer[3] === 4;
-    if (!isPDF && !isDOCX) {
-      res.status(400).json({ error: "Invalid file signature. The uploaded file is not a valid PDF or DOCX document." });
-      return;
-    }
-    if (isPDF && fileExt !== "pdf") {
-      res.status(400).json({ error: "File signature mismatch. Expected DOCX but found PDF." });
-      return;
-    }
-    if (isDOCX && fileExt !== "docx") {
-      res.status(400).json({ error: "File signature mismatch. Expected PDF but found DOCX." });
-      return;
-    }
-    if (isPDF) {
-      let pdfData;
-      try {
-        const parser = new import_pdf_parse.PDFParse({ data: buffer });
-        pdfData = await parser.getText();
-      } catch (pdfErr) {
-        throw new Error(
-          `Failed to parse PDF document: ${pdfErr.message || pdfErr}. This can happen if the file is encrypted, password-protected, or corrupted.`
-        );
+  res.download(filePath, requestedFile, (downloadError) => {
+    if (downloadError) {
+      console.error(`Failed to download ${requestedFile}:`, downloadError);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to download the requested file." });
       }
-      const text = pdfData.text || "";
-      if (!text.trim()) {
-        throw new Error(
-          "Unreadable document content: No readable text was extracted from this PDF document. This often indicates the PDF contains image-only scans rather than native document text layers."
-        );
-      }
-      const lines = text.split("\n").map((l) => l.trim());
-      let inList = false;
-      const formattedLines = lines.map((line) => {
-        if (!line) return "";
-        if (line.length < 60 && /^[A-Z0-9\s.,:-]{4,30}$/i.test(line)) {
-          inList = false;
-          return `
-## ${line}
-`;
-        }
-        if (line.startsWith("\u2022") || line.startsWith("-") || line.startsWith("*")) {
-          inList = true;
-          return `- ${line.substring(1).trim()}`;
-        }
-        if (inList) {
-          inList = false;
-          return `
-${line}`;
-        }
-        return line;
-      });
-      outputMarkdown = `# Document: ${safeFileName || "Converted PDF"}
-
-` + formattedLines.join("\n").replace(/\n{3,}/g, "\n\n");
-    } else {
-      let html = "";
-      try {
-        const result = await import_mammoth.default.convertToHtml({ buffer });
-        html = result.value;
-      } catch (docxErr) {
-        throw new Error(
-          `Failed to convert Word (.docx) document: ${docxErr.message || docxErr}. Please ensure the file is not corrupted, password-protected, or saved in an older binary .doc format.`
-        );
-      }
-      const turndownService = new import_turndown.default({
-        headingStyle: "atx",
-        hr: "---",
-        bulletListMarker: "-",
-        codeBlockStyle: "fenced"
-      });
-      outputMarkdown = turndownService.turndown(html);
     }
-    let cleanMarkdown = outputMarkdown.trim();
-    const durationMs = Date.now() - startTimestamp;
-    recordConversion(safeFileName || "unnamed_document", fileExt, fileSizeKb, actualMode, "success", durationMs);
-    res.json({
-      markdown: cleanMarkdown,
-      modeUsed: actualMode,
-      durationMs
-    });
-  } catch (error) {
-    console.error("Conversion error details:", error);
-    const durationMs = Date.now() - startTimestamp;
-    recordConversion(safeFileName || "unnamed_document", fileExt, fileSizeKb, "classic", "failed", durationMs);
-    res.status(500).json({
-      error: error.message || "Failed to process the uploaded file. Please verify formatting and try again.",
-      stack: process.env.NODE_ENV !== "production" ? error.stack : void 0
-    });
-  }
+  });
 });
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain");
@@ -461,17 +347,25 @@ app.use((err, req, res, next) => {
 function createApp() {
   return app;
 }
-async function startServer(port = DEFAULT_PORT) {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
+async function startServer(port = PORT) {
+  const isRailway = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_ENVIRONMENT_NAME);
+  const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev" || !process.env.NODE_ENV && !isRailway;
+  if (isDevelopment) {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
     console.log("Vite development middleware mounted successfully.");
+  } else {
+    console.log("Running in production mode without Vite middleware.");
   }
   const server = app.listen(port, "0.0.0.0", () => {
     console.log(`ConvertOneAI server listening on port ${port}`);
+    console.log(`Persistence dir: ${PERSIST_DIR}`);
+    console.log(`SUBMISSIONS_FILE: ${SUBMISSIONS_FILE}`);
+    console.log(`STATS_FILE: ${STATS_FILE}`);
   });
   const shutdown = (signal) => {
     console.log(`Received ${signal}, shutting down gracefully.`);
