@@ -1,0 +1,69 @@
+{
+  "totalConversions": 186,
+  "classicConversions": 186,
+  "aiConversions": 0,
+  "totalSizeKb": 20394,
+  "averageDurationMs": 22294,
+  "recentLogs": [
+    {
+      "id": "log-1783462893401",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 31671,
+      "timestamp": "2026-07-07T22:21:33.401Z"
+    },
+    {
+      "id": "log-1783462827283",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 99490,
+      "timestamp": "2026-07-07T22:20:27.283Z"
+    },
+    {
+      "id": "log-1",
+      "fileName": "Q3_Strategic_Plan.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 240,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1250,
+      "timestamp": "2026-07-07T21:55:13.102Z"
+    },
+    {
+      "id": "log-2",
+      "fileName": "Financial_Report_v2.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 1820,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 420,
+      "timestamp": "2026-07-07T21:31:13.102Z"
+    },
+    {
+      "id": "log-3",
+      "fileName": "Developer_Quickstart_Guide.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 750,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 1610,
+      "timestamp": "2026-07-07T20:08:13.102Z"
+    },
+    {
+      "id": "log-4",
+      "fileName": "FAQ_Draft.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 124,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 85,
+      "timestamp": "2026-07-07T19:03:13.103Z"
+    }
+  ]
+}
