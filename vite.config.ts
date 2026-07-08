@@ -14,7 +14,7 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
-    server: {
+    server: {`n      allowedHosts: ["now-production-dffc.up.railway.app"],
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyÃ¢Â€Â”file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
@@ -23,4 +23,6 @@ export default defineConfig(() => {
     },
   };
 });
+
+
 
