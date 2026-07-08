@@ -626,6 +626,17 @@ async function startServer() {
 
 export default app;
 
-if (process.env.NODE_ENV !== "production") {
-  startServer();
+async function start() {
+  await startServer();
+
+  const listenPort = Number(process.env.PORT) || 3000;
+  app.listen(listenPort, () => {
+    console.log(`[server] listening on :${listenPort} (NODE_ENV=${process.env.NODE_ENV || ""})`);
+  });
 }
+
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
+
