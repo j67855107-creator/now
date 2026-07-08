@@ -1,4 +1,4 @@
-import { BlogPost, GuideSection } from "./types";
+﻿import { BlogPost, GuideSection } from "./types";
 import imgBlog1 from "./assets/images/cloudconvert-banner.webp";
 import imgBlog2 from "./assets/images/word-to-markdown-teams.webp";
 import imgBlog3 from "./assets/images/pdf-llm-feeding.webp";
@@ -7,6 +7,7 @@ import imgBlog5 from "./assets/images/chatgpt-blog-image.webp";
 import imgBlog6 from "./assets/images/word_to_markdown_screenshot.webp";
 import imgBlog7 from "./assets/images/comparison_table_screenshot.webp";
 import imgBlog8 from "./assets/images/what-is-markdown.webp"
+
 export const FAQ_ITEMS = [
 
   {
@@ -98,7 +99,7 @@ PDFs excel at keeping a physical document format identical across multiple print
 When a computer reads a PDF, it pulls raw character coordinates. Multi-column structures break into mashed sentences; tables with grid lines are rendered as a disjointed sequence of cells; header scales disappear. 
 
 ### Why AI Prefers Markdown:
-Converting PDFs with ConvertOneAI’s AI-Powered model maps coordinate streams straight into semantically labeled structures:
+Converting PDFs with ConvertOneAIâ€™s AI-Powered model maps coordinate streams straight into semantically labeled structures:
 1. **Hierarchical Headings**: Proper header mapping guides LLM context boundaries.
 2. **Tabular Continuity**: Reconstructing visual lists and cells into Markdown pipe layout (\`| Name | Type |\`) keeps tabular relationships intact for AI context consumption.
 3. **Code & Inline Styles**: Retains exact backticks and styles for code blocks, which makes searching and querying documentation effortless.
@@ -121,7 +122,7 @@ Writing standard copy in Markdown is as simple as typing. But to turn standard c
 
 
 ### 1. Structure Your Semantic Headers Properly
-Keep a single H1 (\`# Headline\`) for your page title, followed by logical H2 (\`## sub-headline\`) blocks. Avoid skipping levels—never jump straight from H1 to H4.
+Keep a single H1 (\`# Headline\`) for your page title, followed by logical H2 (\`## sub-headline\`) blocks. Avoid skipping levelsâ€”never jump straight from H1 to H4.
 
 ### 2. Flawless Multi-Row Tables
 Tables in Markdown can be messy, but standard pipe formats look pristine when rendered:
@@ -158,7 +159,7 @@ Much of the world's documentation is locked inside coordinate-based PDF files, c
 Plain text has emerged as the resilient default of the modern web. Specifically, converting layout-restricted PDF documents into structured Markdown formats addresses several common workflow constraints. Let us explore the three primary use cases that drive this transition:
 
 ### 1. Seamless integration with static sites
-The modern static web relies heavily on Markdown. Popular static site generators — including Astro, Hugo, Jekyll, Docusaurus, and Nextra — use Markdown files (\`.md\`) to compile lightning-fast pages. Pasting unstructured content parsed from standard PDF layouts into these frameworks destroys formatting. By directly converting PDF to Markdown, you build clear semantic files complete with headings and paragraphs structured for instant compilation.
+The modern static web relies heavily on Markdown. Popular static site generators â€” including Astro, Hugo, Jekyll, Docusaurus, and Nextra â€” use Markdown files (\`.md\`) to compile lightning-fast pages. Pasting unstructured content parsed from standard PDF layouts into these frameworks destroys formatting. By directly converting PDF to Markdown, you build clear semantic files complete with headings and paragraphs structured for instant compilation.
 
 ### 2. Centralized documentation hubs
 Modern support wikis, GitHub and GitLab repositories, and platforms like Notion default to Markdown for managing shared knowledge. Converting legalese, developer specifications, or product guides from PDF structure to Markdown allows engineers and support agents to track changes under Git version control. This structural alignment ensures that documentation remains responsive, searchable, and collaborative without needing expensive reading software.
@@ -432,7 +433,7 @@ To summarize our engineering findings, we have mapped layout retention metrics, 
 
 ![Feature Comparison and Benchmark Overview Chart](comparison_table)
 
-As the comparison framework details, while specialized CLI engines like Pandoc excel in local system speed, they completely drop critical layout relationships. Conversely, heavy OCR or neural pipelines like Marker and ChatGPT retain structural integrity but demand massive system overhead or run up heavy API tokens. ConvertOneAI strikes the ideal balance—combining immediate browser access, robust visual table reconstruction, and zero-trust cloud safety in a completely free interface.
+As the comparison framework details, while specialized CLI engines like Pandoc excel in local system speed, they completely drop critical layout relationships. Conversely, heavy OCR or neural pipelines like Marker and ChatGPT retain structural integrity but demand massive system overhead or run up heavy API tokens. ConvertOneAI strikes the ideal balanceâ€”combining immediate browser access, robust visual table reconstruction, and zero-trust cloud safety in a completely free interface.
 
 ---
 
@@ -531,7 +532,7 @@ Traditional visual software platforms use what is known as "What You See Is What
 - **Copy-paste formatting noise**: Pasting text from a styled document into a web CMS often introduces junk CSS code, destroying your website template layout.
 - **Zero version control compatibility**: Because files are saved as compiled binaries, standard developer coordination systems like Git cannot track structural line-by-line changes.
 
-Markdown strips away this hidden configuration. By typing standard keyboard characters alongside your thoughts, you declare exactly what each block of content is—whether it is an article title, a quote block, an highlighted code script, or an item inside an ordered outline list.
+Markdown strips away this hidden configuration. By typing standard keyboard characters alongside your thoughts, you declare exactly what each block of content isâ€”whether it is an article title, a quote block, an highlighted code script, or an item inside an ordered outline list.
 
 ---
 
@@ -581,7 +582,7 @@ A Markdown file is written and saved as simple plain text (\`.md\`). This means 
 ### 2. Massive LLM token savings
 As AI analysis becomes essential to modern development workflows, Markdown is the best way to feed data to Large Generation Networks. Ripping unstructured Word doc files or scraping raw PDFs often spews massive, unformatted text files.
 
-Markdown retains strict document structures—like headers, list relationships, and code boundaries—using minimal characters. If you are preparing documents for LLM reference nodes, read about using Markdown syntax for [link: token saving] to optimize your systems.
+Markdown retains strict document structuresâ€”like headers, list relationships, and code boundariesâ€”using minimal characters. If you are preparing documents for LLM reference nodes, read about using Markdown syntax for [link: token saving] to optimize your systems.
 
 ### 3. Direct publishing integration
 Static-site generators (such as Astro, Hugo, Jekyll, or Gatsby) publish entire blogs and document domains directly from folders of Markdown files. This avoids complex SQL databases, saves thousands of dollars in cloud costs, and ensures lightning-fast website load times for optimal SEO performance.
@@ -694,3 +695,5 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     description: "Call attention to critical notes, disclaimers, references, or instructions panels."
   }
 ];
+
+
