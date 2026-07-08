@@ -393,7 +393,7 @@ app.post("/api/convert", convertLimiter, requireApiKey, async (req: Request, res
 
   // 2. Base64 payload validation
   const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  let cleanedBase64: string | null = fileData.replace(/\s/g, "");
+  let cleanedBase64: string = fileData.replace(/\s/g, "");
   if (!base64Regex.test(cleanedBase64)) {
     res.status(400).json({ error: "Malformed payload error: 'fileData' contains non-base64 characters." });
     return;
@@ -412,7 +412,8 @@ app.post("/api/convert", convertLimiter, requireApiKey, async (req: Request, res
   }
 
   let buffer: Buffer | null = Buffer.from(cleanedBase64, "base64");
-  cleanedBase64 = null; // Instantly free string memory space
+  cleanedBase64 = ""; // Instantly free string memory space
+
 
   try {
     let outputMarkdown = "";
@@ -621,9 +622,10 @@ async function startServer() {
     console.log("Production static handler mounted for /dist with advanced HTTP caching headers.");
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`ConvertOneAI server listening on port ${PORT}`);
-  });
 }
 
-startServer();
+export default app;
+
+if (process.env.NODE_ENV !== "production") {
+  startServer();
+}

@@ -1,10 +1,40 @@
 {
-  "totalConversions": 186,
-  "classicConversions": 186,
+  "totalConversions": 189,
+  "classicConversions": 189,
   "aiConversions": 0,
-  "totalSizeKb": 20394,
-  "averageDurationMs": 22294,
+  "totalSizeKb": 26246,
+  "averageDurationMs": 43774,
   "recentLogs": [
+    {
+      "id": "log-1783522423868",
+      "fileName": "_______________________________2026__AutoRecovered_.docx",
+      "fileExt": "docx",
+      "fileSizeKb": 47.7,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 18027,
+      "timestamp": "2026-07-08T14:53:43.868Z"
+    },
+    {
+      "id": "log-1783522327924",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 34492,
+      "timestamp": "2026-07-08T14:52:07.924Z"
+    },
+    {
+      "id": "log-1783521764495",
+      "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
+      "fileExt": "pdf",
+      "fileSizeKb": 2901.9,
+      "mode": "classic",
+      "status": "success",
+      "durationMs": 207681,
+      "timestamp": "2026-07-08T14:42:44.495Z"
+    },
     {
       "id": "log-1783462893401",
       "fileName": "the-candlestick-trading-bible-_KohanFx.com_.pdf",
