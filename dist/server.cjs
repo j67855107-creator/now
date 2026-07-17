@@ -35,6 +35,8 @@ __export(server_exports, {
 module.exports = __toCommonJS(server_exports);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
+var import_mammoth = __toESM(require("mammoth"), 1);
+var import_turndown = __toESM(require("turndown"), 1);
 var pdfParseNS = __toESM(require("pdf-parse"), 1);
 var import_dotenv = __toESM(require("dotenv"), 1);
 var import_fs = __toESM(require("fs"), 1);
@@ -91,8 +93,8 @@ app.use(
   })
 );
 app.use((0, import_compression.default)());
-app.use(import_express.default.json({ limit: "15mb" }));
-app.use(import_express.default.urlencoded({ limit: "15mb", extended: true }));
+app.use(import_express.default.json({ limit: "50mb" }));
+app.use(import_express.default.urlencoded({ limit: "50mb", extended: true }));
 var PERSIST_DIR = process.env.PERSIST_DIR || import_path.default.join(process.cwd(), process.platform === "win32" ? "tmp" : "tmp");
 if (!import_fs.default.existsSync(PERSIST_DIR)) {
   import_fs.default.mkdirSync(PERSIST_DIR, { recursive: true });
@@ -256,6 +258,52 @@ app.get("/api/stats", apiLimiter, requireApiKey, (req, res) => {
     ...stats,
     contactSubmissions
   });
+});
+app.post("/api/convert", convertLimiter, async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const { fileData, fileName, mimeType, mode } = req.body;
+    if (!fileData || !fileName) {
+      return res.status(400).json({
+        error: "Missing file data or file name"
+      });
+    }
+    const buffer = Buffer.from(fileData, "base64");
+    console.log("Received file:", fileName, "size:", buffer.length);
+    if (buffer.length > 40 * 1024 * 1024) {
+      return res.status(413).json({
+        error: "File too large. Maximum size is 40MB."
+      });
+    }
+    let markdown = "";
+    if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || fileName.toLowerCase().endsWith(".docx")) {
+      const result = await import_mammoth.default.extractRawText({
+        buffer
+      });
+      const turndown = new import_turndown.default();
+      markdown = turndown.turndown(result.value);
+    } else if (mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf")) {
+      const pdfParse = pdfParseNS.default || pdfParseNS;
+      const data = await pdfParse(buffer);
+      markdown = data.text;
+    } else {
+      return res.status(400).json({
+        error: "Unsupported file type"
+      });
+    }
+    const durationMs = Date.now() - startTime;
+    res.json({
+      markdown,
+      modeUsed: mode || "classic",
+      durationMs,
+      warning: null
+    });
+  } catch (error) {
+    console.error("Conversion error:", error);
+    res.status(500).json({
+      error: "Failed to convert document"
+    });
+  }
 });
 app.get("/api/admin/download", apiLimiter, (req, res) => {
   const allowedKey = process.env.API_PROTECTION_KEY || "WN3FBAF2GYF";

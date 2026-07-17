@@ -79,8 +79,8 @@ app.use(
 app.use(compression());
 
 // Body parsing with strict 15mb limit to handle document files securely
-app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ limit: "15mb", extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Path configurations for persistent local storage files
 // In many container environments process.cwd() may be read-only. Never allow
@@ -369,6 +369,14 @@ app.post("/api/convert", convertLimiter, async (req: Request, res: Response) => 
     }
 
     const buffer = Buffer.from(fileData, "base64");
+
+    console.log("Received file:", fileName, "size:", buffer.length);
+
+    if (buffer.length > 40 * 1024 * 1024) {
+      return res.status(413).json({
+        error: "File too large. Maximum size is 40MB.",
+      });
+    }
 
     let markdown = "";
 
