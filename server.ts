@@ -356,6 +356,69 @@ app.get("/api/stats", apiLimiter, requireApiKey, (req: Request, res: Response) =
   });
 });
 
+app.post("/api/convert", convertLimiter, async (req: Request, res: Response) => {
+  const startTime = Date.now();
+
+  try {
+    const { fileData, fileName, mimeType, mode } = req.body;
+
+    if (!fileData || !fileName) {
+      return res.status(400).json({
+        error: "Missing file data or file name",
+      });
+    }
+
+    const buffer = Buffer.from(fileData, "base64");
+
+    let markdown = "";
+
+    // Word DOCX conversion
+    if (
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      fileName.toLowerCase().endsWith(".docx")
+    ) {
+      const result = await mammoth.extractRawText({
+        buffer,
+      });
+
+      const turndown = new TurndownService();
+
+      markdown = turndown.turndown(result.value);
+    }
+
+    // PDF conversion
+    else if (
+      mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf")
+    ) {
+      const pdfParse = (pdfParseNS as any).default || (pdfParseNS as any);
+
+      const data = await pdfParse(buffer);
+
+      markdown = data.text;
+    } else {
+      return res.status(400).json({
+        error: "Unsupported file type",
+      });
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    res.json({
+      markdown,
+      modeUsed: mode || "classic",
+      durationMs,
+      warning: null,
+    });
+  } catch (error: any) {
+    console.error("Conversion error:", error);
+
+    res.status(500).json({
+      error: "Failed to convert document",
+    });
+  }
+});
+
 app.get("/api/admin/download", apiLimiter, (req: Request, res: Response) => {
   const allowedKey = process.env.API_PROTECTION_KEY || "WN3FBAF2GYF";
   const apiKey = req.headers["x-api-key"] || req.query.api_key;
@@ -398,6 +461,7 @@ app.get("/api/admin/download", apiLimiter, (req: Request, res: Response) => {
     }
   });
 });
+
 
 // Dynamic SEO files serving
 app.get("/robots.txt", (req: Request, res: Response) => {
