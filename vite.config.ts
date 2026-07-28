@@ -5,7 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    watch: {
+    port: 5173,
+    strictPort: false,
+    watch: process.env.DISABLE_HMR === 'true' ? null : {
       ignored: [
         "**/data/**",
         "**/*.json",
@@ -14,6 +16,6 @@ export default defineConfig({
         "**/contacts.json"
       ],
     },
+    hmr: process.env.DISABLE_HMR !== 'true' ? { port: 24679 } : false,
   },
 });
-
