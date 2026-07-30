@@ -13,6 +13,7 @@ import { RAGExportService } from "../services/RAGExportService";
 import { AIExportService } from "../services/AIExportService";
 import { ProcessingPipeline } from "../services/ProcessingPipeline";
 import { AnalyticsService } from "../services/AnalyticsService";
+import { CacheService } from "../services/CacheService";
 import { PromptTemplateRegistry } from "../../src/ai/registries/PromptTemplateRegistry";
 import type { PromptTemplateId, AIProviderId, RAGExportFormat, ExportFormatId } from "../../src/types";
 
@@ -28,16 +29,26 @@ export async function handleCleanDocument(req: Request, res: Response) {
       return res.status(400).json({ error: "Missing markdown content" });
     }
 
+    const cacheKey = CacheService.generateKey(markdown, { type: "clean", options });
+    const cached = CacheService.get<any>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, ...cached, cached: true });
+    }
+
     const cleaned = DocumentCleanerService.clean(markdown, options);
-
-    AnalyticsService.trackFeatureUsage("ai-cleaner", true, Date.now() - startTime);
-
-    res.json({
-      success: true,
+    const result = {
       markdown: cleaned,
       originalLength: markdown.length,
       cleanedLength: cleaned.length,
       reduction: Math.round((1 - cleaned.length / markdown.length) * 100),
+    };
+
+    CacheService.set(cacheKey, result);
+    AnalyticsService.trackFeatureUsage("ai-cleaner", true, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      ...result,
     });
   } catch (error: any) {
     AnalyticsService.trackFeatureUsage("ai-cleaner", false, Date.now() - startTime);
@@ -58,14 +69,26 @@ export async function handleAnalyzeDocument(req: Request, res: Response) {
       return res.status(400).json({ error: "Missing markdown content" });
     }
 
-    const { analysis, readiness } = DocumentAnalyzerService.analyze(markdown, title, pageCount);
+    const cacheKey = CacheService.generateKey(markdown, { type: "analyze", title, pageCount });
+    const cached = CacheService.get<any>(cacheKey);
+    if (cached) {
+      return res.json({ success: true, ...cached, cached: true });
+    }
 
+    const { analysis, readiness } = DocumentAnalyzerService.analyze(markdown, title, pageCount);
+    const outline = DocumentAnalyzerService.generateOutline(markdown);
+    const faq = DocumentAnalyzerService.generateFAQ(markdown);
+    const flashcards = DocumentAnalyzerService.generateFlashcards(markdown);
+    const actionItems = DocumentAnalyzerService.extractActionItems(markdown);
+
+    const result = { analysis, readiness, outline, faq, flashcards, actionItems };
+
+    CacheService.set(cacheKey, result);
     AnalyticsService.trackFeatureUsage("document-analyzer", true, Date.now() - startTime);
 
     res.json({
       success: true,
-      analysis,
-      readiness,
+      ...result,
     });
   } catch (error: any) {
     AnalyticsService.trackFeatureUsage("document-analyzer", false, Date.now() - startTime);

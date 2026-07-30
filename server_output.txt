@@ -1,0 +1,6 @@
+◇ injected env (2) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+[Server] Running in development mode. Vite middleware will be mounted on start.
+[Server] Vite development middleware mounted successfully.
+[Server] ConvertOneAI server listening on port 3000
+[Server] Persistence dir: C:\Users\Fathi\OneDrive\Desktop\convrttest\tmp
+[Server] Admin login endpoint: POST /api/auth/admin/login

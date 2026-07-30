@@ -16,6 +16,6 @@ export default defineConfig({
         "**/contacts.json"
       ],
     },
-    hmr: process.env.DISABLE_HMR !== 'true' ? { port: 24679 } : false,
+    hmr: process.env.DISABLE_HMR !== 'true' ? true : false,
   },
 });

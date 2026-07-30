@@ -1,6 +1,7 @@
 // ─── View Modes ─────────────────────────────────────────────
 export type ViewMode =
   | "home"
+  | "tools"
   | "convert-word"
   | "convert-pdf"
   | "analytics"

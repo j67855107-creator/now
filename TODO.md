@@ -1,23 +1,27 @@
-# Codebase Cleanup & Optimization
+# Refactoring Plan for server.ts
 
-## ✅ Phase 1: Resolve Merge Conflicts
-- [x] `tsconfig.json` - resolved
-- [x] `vite.config.ts` - resolved
-- [x] `src/types.ts` - resolved
-- [x] `src/App.tsx` - resolved
-- [x] `server.ts` - resolved (merged Railway-ready with AI registries)
-- [x] `package.json` - resolved
-- [x] `package-lock.json` - resolved
+## ✅ 7 Items to Implement
 
-## Phase 2: Cleanup Tasks
-- [ ] Delete all temporary fix scripts (*.cjs, *.js in root)
-- [ ] Remove unused npm packages (sharp, @google/genai, motion, autoprefixer, pdf-export-images, @types/ws, @types/file-saver, file-saver, pdfjs-dist)
-- [ ] Delete unused/empty files (useFileConverter.ts, server/services/conversionService.ts)
-- [ ] Remove dead AI components/hooks not used anywhere
-- [ ] Remove temporary debug console.log from server.ts
+- [x] 1. Consolidate `isProduction` into single authoritative source of truth
+- [x] 2. Remove `fs.existsSync(distPath)` from static file condition — only serve `dist/` in production
+- [x] 3. Remove `fs.existsSync(indexHtmlPath)` from SPA fallback — only register `*` in production
+- [x] 4. Reorder middleware: Health first → API → Vite (dev) or Static+SPA (prod) → 404 → Error
+- [x] 5. Remove unused `apiLimiter` from server.ts (the one in api.ts is used)
+- [x] 6. Simplify 404 handler — remove duplicate SPA fallback logic
+- [x] 7. Remove dead code
 
-## Phase 3: Verify & Rebuild
-- [ ] Run `npx vite build` (frontend build)
-- [ ] Run `npm run build:backend`
-- [ ] Test server starts correctly
+## 🔒 Preserved (per user feedback)
+
+- [x] Keep `createApp()` and `startServer()` as exports
+- [x] Keep `if (NODE_ENV !== "test")` auto-start pattern
+- [x] Add defensive `serverStarted` flag (not as EADDRINUSE mask)
+- [x] All existing API endpoints preserved
+- [x] All features kept unless incorrect
+
+## 🧪 Testing
+
+- [x] `curl http://localhost:3000/health` — responds immediately
+- [x] `curl http://localhost:3000/api/health` — responds immediately
+- [x] Development mode: no `dist/` serving, Vite on 5173
+- [x] Production mode: `dist/` served, SPA fallback active
 

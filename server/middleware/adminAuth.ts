@@ -31,7 +31,7 @@ export async function handleAdminLogin(req: Request, res: Response) {
 
     // Validate against environment variables
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    const adminPassword = process.env.ADMIN_PASSWORD || "TENDRARA";
     const jwtSecret = process.env.JWT_SECRET || "convertoneai-jwt-secret-change-in-production-k8x9m2v4";
     const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "24h";
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { handleConversion } from "../controllers/convertController";
+import { handleConversion, handleUrlConversion } from "../controllers/convertController";
 import { handleContactForm } from "../controllers/contactController";
 import { requireApiKey } from "../middleware/authMiddleware";
 import { handleAdminLogin, requireAdminAuth, AdminRequest } from "../middleware/adminAuth";
@@ -69,6 +69,7 @@ router.get("/stats", apiLimiter, requireApiKey, (req: Request, res: Response) =>
 });
 
 router.post("/convert", convertLimiter, handleConversion);
+router.post("/convert/url", convertLimiter, handleUrlConversion);
 router.post("/contact", contactLimiter, handleContactForm);
 
 // AI Routes

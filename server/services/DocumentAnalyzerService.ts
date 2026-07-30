@@ -423,5 +423,85 @@ export class DocumentAnalyzerService {
 
     return recommendations;
   }
+
+  /**
+   * Extract key structural headings into a nested outline.
+   */
+  static generateOutline(markdown: string): { level: number; title: string }[] {
+    const outline: { level: number; title: string }[] = [];
+    const lines = markdown.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        outline.push({
+          level: match[1].length,
+          title: match[2].trim(),
+        });
+      }
+    }
+    return outline;
+  }
+
+  /**
+   * Generate automatic Q&A FAQ pairs from key sentences in the document.
+   */
+  static generateFAQ(markdown: string): { question: string; answer: string }[] {
+    const faqs: { question: string; answer: string }[] = [];
+    const paragraphs = markdown.split(/\n\s*\n/).filter((p) => p.trim().length > 30);
+
+    for (const p of paragraphs.slice(0, 8)) {
+      const clean = p.replace(/[#*_`]/g, "").trim();
+      const firstSentence = clean.split(/[.!?]/)[0];
+      if (firstSentence && firstSentence.length > 15) {
+        faqs.push({
+          question: `What is the key takeaway regarding "${firstSentence.substring(0, 40)}..."?`,
+          answer: clean.length > 200 ? clean.substring(0, 200) + "..." : clean,
+        });
+      }
+    }
+    return faqs;
+  }
+
+  /**
+   * Generate flashcard Q&A pairs from definitions and heading concepts.
+   */
+  static generateFlashcards(markdown: string): { term: string; definition: string }[] {
+    const cards: { term: string; definition: string }[] = [];
+    const lines = markdown.split("\n");
+
+    let currentHeading = "";
+    for (const line of lines) {
+      if (line.startsWith("#")) {
+        currentHeading = line.replace(/^#+\s*/, "").trim();
+      } else if (currentHeading && line.trim().length > 20) {
+        cards.push({
+          term: currentHeading,
+          definition: line.trim(),
+        });
+        currentHeading = ""; // Pair once per heading
+      }
+    }
+    return cards.slice(0, 10);
+  }
+
+  /**
+   * Extract action items, tasks, and TODOs from document.
+   */
+  static extractActionItems(markdown: string): string[] {
+    const items: string[] = [];
+    const lines = markdown.split("\n");
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (
+        /^(todo|action|task|item|\- \[\s?\])/i.test(trimmed) ||
+        /must|should|required|needs to/i.test(trimmed)
+      ) {
+        items.push(trimmed.replace(/^[-*]\s*/, ""));
+      }
+    }
+    return items.slice(0, 15);
+  }
 }
+
 

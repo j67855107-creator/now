@@ -37,6 +37,11 @@ export default function Header({
         <nav className="hidden lg:flex items-center gap-1.5 text-sm font-medium">
           <button onClick={() => setViewMode("home")}
             className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "home" ? "text-indigo-600 border-b-2 border-indigo-600 rounded-none pb-1" : "text-slate-600 hover:text-slate-900"}`}>Convert</button>
+          <button onClick={() => setViewMode("tools")}
+            className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${viewMode === "tools" ? "text-indigo-600 border-b-2 border-indigo-600 rounded-none pb-1" : "text-slate-600 hover:text-slate-900"}`}>
+            <span>AI Tools</span>
+            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full">New</span>
+          </button>
           <button onClick={() => selectPreconfigMode("docx")}
             className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "convert-word" ? "text-indigo-600 border-b-2 border-indigo-600 rounded-none pb-1" : "text-slate-600 hover:text-slate-900"}`}>Word to MD</button>
           <button onClick={() => selectPreconfigMode("pdf")}
@@ -64,6 +69,11 @@ export default function Header({
         <div className="lg:hidden bg-white border-t border-slate-100 px-6 py-4 space-y-2">
           <button onClick={() => { setViewMode("home"); setMobileMenuOpen(false); }}
             className="block w-full text-left px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg cursor-pointer">Home Launcher</button>
+          <button onClick={() => { setViewMode("tools"); setMobileMenuOpen(false); }}
+            className="block w-full text-left px-3 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 rounded-lg cursor-pointer flex items-center justify-between">
+            <span>AI Tools Directory</span>
+            <span className="text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">Explore</span>
+          </button>
           <button onClick={() => { selectPreconfigMode("docx"); setMobileMenuOpen(false); }}
             className="block w-full text-left px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg cursor-pointer">Word to Markdown</button>
           <button onClick={() => { selectPreconfigMode("pdf"); setMobileMenuOpen(false); }}

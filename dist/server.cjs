@@ -41,7 +41,6 @@ var import_fs = __toESM(require("fs"), 1);
 var import_dotenv = __toESM(require("dotenv"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
 var import_compression = __toESM(require("compression"), 1);
-var import_express_rate_limit2 = __toESM(require("express-rate-limit"), 1);
 
 // server/routes/api.ts
 var import_express = require("express");
@@ -51,6 +50,9 @@ var import_mammoth = __toESM(require("mammoth"), 1);
 var import_pdf_parse = require("pdf-parse");
 var import_turndown = __toESM(require("turndown"), 1);
 var import_turndown_plugin_gfm = require("turndown-plugin-gfm");
+var import_tesseract = require("tesseract.js");
+var import_jszip = __toESM(require("jszip"), 1);
+var XLSX = __toESM(require("xlsx"), 1);
 
 // server/services/statsService.ts
 var stats = {
@@ -103,6 +105,53 @@ var turndownService = new import_turndown.default({
 turndownService.use(import_turndown_plugin_gfm.gfm);
 var MAX_FILE_SIZE_MB = 50;
 var MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+function pdfTextToMarkdown(pages) {
+  const sections = [];
+  for (const page of pages) {
+    const rawText = page.text;
+    if (!rawText || !rawText.trim()) continue;
+    const lines = rawText.split("\n");
+    const cleanedLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed) {
+        cleanedLines.push("");
+        continue;
+      }
+      if (/^page\s+\d+(\s+of\s+\d+)?$/i.test(trimmed)) continue;
+      if (/^[-—]\s*\d+\s*[-—]$/.test(trimmed)) continue;
+      if (/^\d{1,3}$/.test(trimmed) && trimmed.length <= 3) continue;
+      const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed.length > 2 && trimmed.length < 80 && /[A-Z]/.test(trimmed) && !/^\d+$/.test(trimmed);
+      if (isAllCaps) {
+        const titleCase = trimmed.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+        cleanedLines.push(`## ${titleCase}`);
+        continue;
+      }
+      cleanedLines.push(trimmed);
+    }
+    const merged = [];
+    for (let i = 0; i < cleanedLines.length; i++) {
+      const current = cleanedLines[i];
+      if (!current) {
+        merged.push("");
+        continue;
+      }
+      const nextIdx = cleanedLines.findIndex((l, j) => j > i && l.trim() !== "");
+      if (nextIdx > 0 && !current.startsWith("#") && !current.startsWith("-") && !current.startsWith("|") && !current.match(/[.!?:;]$/) && cleanedLines[nextIdx] && !cleanedLines[nextIdx].startsWith("#") && !cleanedLines[nextIdx].startsWith("-") && !cleanedLines[nextIdx].startsWith("|") && /^[a-z]/.test(cleanedLines[nextIdx])) {
+        merged.push(current + " " + cleanedLines[nextIdx]);
+        cleanedLines[nextIdx] = "";
+      } else {
+        merged.push(current);
+      }
+    }
+    const normalized = merged.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    if (normalized) {
+      sections.push(normalized);
+    }
+  }
+  return sections.join("\n\n---\n\n");
+}
 async function handleConversion(req, res) {
   const startTime = Date.now();
   try {
@@ -117,13 +166,130 @@ async function handleConversion(req, res) {
     let markdown = "";
     let warning = void 0;
     if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || fileName.endsWith(".docx")) {
-      const { value: html } = await import_mammoth.default.convertToHtml({ buffer });
+      const { value: html, messages } = await import_mammoth.default.convertToHtml({ buffer });
+      if (!html || html.trim() === "") {
+        return res.status(400).json({
+          error: "The Word document appears to be empty or contains only images/objects that cannot be converted to text."
+        });
+      }
       markdown = turndownService.turndown(html);
+      const warnings = messages.filter((m) => m.type === "warning");
+      if (warnings.length > 0) {
+        warning = `${warnings.length} element(s) could not be fully converted (e.g. embedded objects, SmartArt). Text content was preserved.`;
+      }
+    } else if (mimeType === "text/html" || fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+      const htmlText = buffer.toString("utf-8");
+      const cleanHtml = htmlText.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
+      markdown = turndownService.turndown(cleanHtml);
+    } else if (mimeType.startsWith("image/") || /\.(png|jpe?g|webp|bmp|gif)$/i.test(fileName)) {
+      const worker = await (0, import_tesseract.createWorker)("eng");
+      try {
+        const ret = await worker.recognize(buffer);
+        const ocrText = ret.data.text.trim();
+        await worker.terminate();
+        if (!ocrText) {
+          return res.status(400).json({ error: "OCR could not detect any readable text in the uploaded image." });
+        }
+        markdown = ocrText.split("\n").map((line) => line.trim()).filter(Boolean).join("\n\n");
+      } catch (ocrErr) {
+        await worker.terminate().catch(() => {
+        });
+        throw ocrErr;
+      }
+    } else if (mimeType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" || fileName.endsWith(".pptx")) {
+      const zip = await import_jszip.default.loadAsync(buffer);
+      const slideFiles = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name)).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)?.[0] || "0", 10);
+        const numB = parseInt(b.match(/\d+/)?.[0] || "0", 10);
+        return numA - numB;
+      });
+      if (slideFiles.length === 0) {
+        return res.status(400).json({ error: "The PowerPoint presentation appears to contain no text slides." });
+      }
+      const slideTexts = [];
+      for (let i = 0; i < slideFiles.length; i++) {
+        const slideXml = await zip.files[slideFiles[i]].async("text");
+        const textMatches = slideXml.match(/<a:t[^>]*>(.*?)<\/a:t>/g) || [];
+        const lines = textMatches.map((tag) => tag.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const slideTitle = lines[0];
+          const slideBody = lines.slice(1).map((l) => `- ${l}`).join("\n");
+          slideTexts.push(`## Slide ${i + 1}: ${slideTitle}
+
+${slideBody}`);
+        }
+      }
+      if (slideTexts.length === 0) {
+        return res.status(400).json({ error: "No text content could be extracted from the presentation slides." });
+      }
+      markdown = slideTexts.join("\n\n---\n\n");
+    } else if (mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || mimeType === "application/vnd.ms-excel" || /\.(xlsx|xls|csv)$/i.test(fileName)) {
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return res.status(400).json({ error: "The Excel workbook contains no sheets." });
+      }
+      const sheetMarkdowns = [];
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        const csvText = XLSX.utils.sheet_to_csv(worksheet);
+        if (!csvText || !csvText.trim()) continue;
+        const lines = csvText.split("\n").filter((l) => l.trim() !== "");
+        if (lines.length === 0) continue;
+        const tableRows = lines.map((line) => {
+          const cells = line.split(",").map((c) => c.replace(/^"|"$/g, "").trim());
+          return `| ${cells.join(" | ")} |`;
+        });
+        if (tableRows.length > 0) {
+          const header = tableRows[0];
+          const colCount = (header.match(/\|/g) || []).length - 1;
+          const separator = `| ${Array(Math.max(1, colCount)).fill("---").join(" | ")} |`;
+          const body = tableRows.slice(1).join("\n");
+          const tableMd = `${header}
+${separator}
+${body}`;
+          sheetMarkdowns.push(`## Sheet: ${sheetName}
+
+${tableMd}`);
+        }
+      }
+      if (sheetMarkdowns.length === 0) {
+        return res.status(400).json({ error: "No tabular data found in the spreadsheet." });
+      }
+      markdown = sheetMarkdowns.join("\n\n---\n\n");
+    } else if (mimeType === "application/epub+zip" || fileName.endsWith(".epub")) {
+      const zip = await import_jszip.default.loadAsync(buffer);
+      const htmlFiles = Object.keys(zip.files).filter((name) => /\.(html|xhtml|htm)$/i.test(name) && !name.includes("toc")).sort();
+      if (htmlFiles.length === 0) {
+        return res.status(400).json({ error: "The EPUB e-book appears to contain no HTML chapters." });
+      }
+      const chapterMarkdowns = [];
+      for (const filePath of htmlFiles) {
+        const rawHtml = await zip.files[filePath].async("text");
+        const cleanHtml = rawHtml.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "").replace(/<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>/gi, "");
+        const chapterMd = turndownService.turndown(cleanHtml).trim();
+        if (chapterMd && chapterMd.length > 10) {
+          chapterMarkdowns.push(chapterMd);
+        }
+      }
+      if (chapterMarkdowns.length === 0) {
+        return res.status(400).json({ error: "No readable text content could be extracted from the EPUB e-book." });
+      }
+      markdown = chapterMarkdowns.join("\n\n---\n\n");
     } else if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) {
       const parser = new import_pdf_parse.PDFParse({ data: new Uint8Array(buffer) });
       try {
         const result = await parser.getText();
-        markdown = result.text;
+        if (result.pages && result.pages.length > 0) {
+          markdown = pdfTextToMarkdown(result.pages);
+        } else {
+          markdown = result.text.replace(/\n--\s*\d+\s+of\s+\d+\s*--\n/g, "\n\n").trim();
+        }
+        const textContent = markdown.replace(/[#\-\s|>*_`]/g, "").trim();
+        if (!textContent || textContent.length < 5) {
+          return res.status(400).json({
+            error: "This PDF appears to be a scanned image or contains no selectable text. Please use a PDF with selectable text or upload the document as an image file (PNG/JPG) for OCR extraction."
+          });
+        }
         if (result.total > 20) {
           warning = `PDF has ${result.total} pages. Parsing may be imperfect for complex layouts.`;
         }
@@ -131,7 +297,7 @@ async function handleConversion(req, res) {
         await parser.destroy();
       }
     } else {
-      return res.status(400).json({ error: "Unsupported file type." });
+      return res.status(400).json({ error: "Unsupported file type. Please upload a .pdf, .docx, .html file or an image (.png, .jpg)." });
     }
     const durationMs = Date.now() - startTime;
     const fileSizeKb = Math.round(buffer.length / 1024);
@@ -167,14 +333,65 @@ async function handleConversion(req, res) {
     console.error("[Conversion Error]", error);
     const errorMsg = error instanceof Error ? error.message : String(error);
     let errorMessage = "An unexpected error occurred during conversion.";
-    if (errorMsg.includes("Invalid file signature")) {
-      errorMessage = "File is corrupted or not a valid document format.";
+    if (errorMsg.includes("Invalid file signature") || errorMsg.includes("Invalid PDF")) {
+      errorMessage = "File is corrupted or not a valid document format. Please check the file and try again.";
+    } else if (errorMsg.includes("password") || errorMsg.includes("Password")) {
+      errorMessage = "This PDF is password-protected. Please remove the password and try again.";
     } else if (errorMsg.includes("timeout")) {
-      errorMessage = "Conversion timed out. The document may be too complex.";
+      errorMessage = "Conversion timed out. The document may be too complex or too large.";
     }
     res.status(500).json({
       success: false,
       error: errorMessage
+    });
+  }
+}
+async function handleUrlConversion(req, res) {
+  const startTime = Date.now();
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== "string" || !url.startsWith("http")) {
+      return res.status(400).json({ error: "Please provide a valid HTTP or HTTPS URL." });
+    }
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ConvertOneAI/1.0" },
+      signal: AbortSignal.timeout(15e3)
+    });
+    if (!response.ok) {
+      return res.status(400).json({ error: `Failed to fetch URL: HTTP ${response.status} ${response.statusText}` });
+    }
+    const htmlText = await response.text();
+    const cleanHtml = htmlText.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
+    const markdown = turndownService.turndown(cleanHtml);
+    const durationMs = Date.now() - startTime;
+    addConversionLog({
+      fileName: url,
+      fileSizeKb: Math.round(htmlText.length / 1024),
+      fileExt: "url",
+      mode: "classic",
+      durationMs,
+      status: "success"
+    });
+    res.status(200).json({
+      success: true,
+      markdown,
+      modeUsed: "classic",
+      durationMs
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    addConversionLog({
+      fileName: req.body.url || "unknown_url",
+      fileSizeKb: 0,
+      fileExt: "url",
+      mode: "classic",
+      durationMs,
+      status: "failed"
+    });
+    console.error("[URL Conversion Error]", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to process URL conversion."
     });
   }
 }
@@ -374,7 +591,7 @@ async function handleAdminLogin(req, res) {
       return res.status(400).json({ error: "Username and password cannot be empty." });
     }
     const adminUsername = process.env.ADMIN_USERNAME || "admin";
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    const adminPassword = process.env.ADMIN_PASSWORD || "TENDRARA";
     const jwtSecret = process.env.JWT_SECRET || "convertoneai-jwt-secret-change-in-production-k8x9m2v4";
     const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "24h";
     if (trimmedUsername !== adminUsername) {
@@ -445,7 +662,11 @@ var DEFAULT_CLEANER_OPTIONS = {
   mergeParagraphs: true,
   normalizeWhitespace: true,
   improveHeadings: true,
-  preserveTables: true
+  preserveTables: true,
+  removeReferences: true,
+  removeHtmlTags: true,
+  removeAdvertisements: true,
+  encodingRepair: true
 };
 var DocumentCleanerService = class {
   /**
@@ -457,14 +678,49 @@ var DocumentCleanerService = class {
   static clean(markdown, options = {}) {
     const opts = { ...DEFAULT_CLEANER_OPTIONS, ...options };
     let result = markdown;
+    if (opts.encodingRepair) result = this.repairEncoding(result);
     if (opts.removeHeaders) result = this.removeRepeatedHeaders(result);
     if (opts.removeFooters) result = this.removeRepeatedFooters(result);
     if (opts.removePageNumbers) result = this.removePageNumbers(result);
     if (opts.removeDuplicates) result = this.removeDuplicatedLines(result);
+    if (opts.removeAdvertisements) result = this.removeAdvertisements(result);
+    if (opts.removeReferences) result = this.removeReferences(result);
+    if (opts.removeHtmlTags) result = this.removeHtmlTags(result);
     if (opts.mergeParagraphs) result = this.mergeBrokenParagraphs(result);
     if (opts.normalizeWhitespace) result = this.normalizeWhitespace(result);
     if (opts.improveHeadings) result = this.improveHeadingHierarchy(result);
     return result;
+  }
+  /**
+   * Repair common broken UTF-8 encoding sequences.
+   */
+  static repairEncoding(markdown) {
+    return markdown.replace(/â€™/g, "'").replace(/â€œ/g, '"').replace(/â€/g, '"').replace(/â€“/g, "\u2013").replace(/â€”/g, "\u2014").replace(/Ã©/g, "\xE9").replace(/Ã/g, "\xE0");
+  }
+  /**
+   * Remove citation brackets and reference markers like [1], [2,3].
+   */
+  static removeReferences(markdown) {
+    return markdown.replace(/\[\d+(?:[,\s;]+\d+)*\]/g, "");
+  }
+  /**
+   * Remove residual inline HTML tags while preserving table markup if present.
+   */
+  static removeHtmlTags(markdown) {
+    return markdown.replace(/<\/?(div|span|font|p|br|center|section|article|header|footer)\b[^>]*>/gi, "");
+  }
+  /**
+   * Remove advertisement lines and sponsored links.
+   */
+  static removeAdvertisements(markdown) {
+    const lines = markdown.split("\n");
+    return lines.filter((line) => {
+      const trimmed = line.trim().toLowerCase();
+      if (trimmed.startsWith("advertisement") || trimmed.startsWith("sponsored link") || trimmed === "click here to subscribe" || trimmed.includes("all rights reserved. powered by")) {
+        return false;
+      }
+      return true;
+    }).join("\n");
   }
   /**
    * Remove repeated headers that appear at the top of each page.
@@ -1294,6 +1550,75 @@ var DocumentAnalyzerService = class {
       recommendations.push("Document exceeds 20 minutes reading time. Generate a summary first.");
     }
     return recommendations;
+  }
+  /**
+   * Extract key structural headings into a nested outline.
+   */
+  static generateOutline(markdown) {
+    const outline = [];
+    const lines = markdown.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        outline.push({
+          level: match[1].length,
+          title: match[2].trim()
+        });
+      }
+    }
+    return outline;
+  }
+  /**
+   * Generate automatic Q&A FAQ pairs from key sentences in the document.
+   */
+  static generateFAQ(markdown) {
+    const faqs = [];
+    const paragraphs = markdown.split(/\n\s*\n/).filter((p) => p.trim().length > 30);
+    for (const p of paragraphs.slice(0, 8)) {
+      const clean = p.replace(/[#*_`]/g, "").trim();
+      const firstSentence = clean.split(/[.!?]/)[0];
+      if (firstSentence && firstSentence.length > 15) {
+        faqs.push({
+          question: `What is the key takeaway regarding "${firstSentence.substring(0, 40)}..."?`,
+          answer: clean.length > 200 ? clean.substring(0, 200) + "..." : clean
+        });
+      }
+    }
+    return faqs;
+  }
+  /**
+   * Generate flashcard Q&A pairs from definitions and heading concepts.
+   */
+  static generateFlashcards(markdown) {
+    const cards = [];
+    const lines = markdown.split("\n");
+    let currentHeading = "";
+    for (const line of lines) {
+      if (line.startsWith("#")) {
+        currentHeading = line.replace(/^#+\s*/, "").trim();
+      } else if (currentHeading && line.trim().length > 20) {
+        cards.push({
+          term: currentHeading,
+          definition: line.trim()
+        });
+        currentHeading = "";
+      }
+    }
+    return cards.slice(0, 10);
+  }
+  /**
+   * Extract action items, tasks, and TODOs from document.
+   */
+  static extractActionItems(markdown) {
+    const items = [];
+    const lines = markdown.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (/^(todo|action|task|item|\- \[\s?\])/i.test(trimmed) || /must|should|required|needs to/i.test(trimmed)) {
+        items.push(trimmed.replace(/^[-*]\s*/, ""));
+      }
+    }
+    return items.slice(0, 15);
   }
 };
 
@@ -2783,14 +3108,23 @@ async function handleCleanDocument(req, res) {
     if (!markdown) {
       return res.status(400).json({ error: "Missing markdown content" });
     }
+    const cacheKey = CacheService.generateKey(markdown, { type: "clean", options });
+    const cached = CacheService.get(cacheKey);
+    if (cached) {
+      return res.json({ success: true, ...cached, cached: true });
+    }
     const cleaned = DocumentCleanerService.clean(markdown, options);
-    AnalyticsService.trackFeatureUsage("ai-cleaner", true, Date.now() - startTime);
-    res.json({
-      success: true,
+    const result = {
       markdown: cleaned,
       originalLength: markdown.length,
       cleanedLength: cleaned.length,
       reduction: Math.round((1 - cleaned.length / markdown.length) * 100)
+    };
+    CacheService.set(cacheKey, result);
+    AnalyticsService.trackFeatureUsage("ai-cleaner", true, Date.now() - startTime);
+    res.json({
+      success: true,
+      ...result
     });
   } catch (error) {
     AnalyticsService.trackFeatureUsage("ai-cleaner", false, Date.now() - startTime);
@@ -2805,12 +3139,22 @@ async function handleAnalyzeDocument(req, res) {
     if (!markdown) {
       return res.status(400).json({ error: "Missing markdown content" });
     }
+    const cacheKey = CacheService.generateKey(markdown, { type: "analyze", title, pageCount });
+    const cached = CacheService.get(cacheKey);
+    if (cached) {
+      return res.json({ success: true, ...cached, cached: true });
+    }
     const { analysis, readiness } = DocumentAnalyzerService.analyze(markdown, title, pageCount);
+    const outline = DocumentAnalyzerService.generateOutline(markdown);
+    const faq = DocumentAnalyzerService.generateFAQ(markdown);
+    const flashcards = DocumentAnalyzerService.generateFlashcards(markdown);
+    const actionItems = DocumentAnalyzerService.extractActionItems(markdown);
+    const result = { analysis, readiness, outline, faq, flashcards, actionItems };
+    CacheService.set(cacheKey, result);
     AnalyticsService.trackFeatureUsage("document-analyzer", true, Date.now() - startTime);
     res.json({
       success: true,
-      analysis,
-      readiness
+      ...result
     });
   } catch (error) {
     AnalyticsService.trackFeatureUsage("document-analyzer", false, Date.now() - startTime);
@@ -3024,6 +3368,7 @@ router.get("/stats", apiLimiter, requireApiKey, (req, res) => {
   res.json(getStats());
 });
 router.post("/convert", convertLimiter, handleConversion);
+router.post("/convert/url", convertLimiter, handleUrlConversion);
 router.post("/contact", contactLimiter, handleContactForm);
 router.post("/ai/clean", aiLimiter, handleCleanDocument);
 router.post("/ai/analyze", aiLimiter, handleAnalyzeDocument);
@@ -3045,11 +3390,12 @@ router.get("/admin/stats", apiLimiter, requireAdminAuth, (req, res) => {
 var api_default = router;
 
 // server.ts
-if (process.env.NODE_ENV !== "production") {
+var isProduction = process.env.NODE_ENV === "production";
+if (!isProduction) {
   import_dotenv.default.config();
 }
 var app = (0, import_express2.default)();
-var PORT = parseInt(String(process.env.PORT ?? "")) || 3e3;
+var PORT = parseInt(String(process.env.PORT ?? "")) || 3001;
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(
@@ -3059,20 +3405,20 @@ app.use(
     crossOriginEmbedderPolicy: false
   })
 );
-var apiLimiter2 = (0, import_express_rate_limit2.default)({
-  windowMs: 15 * 60 * 1e3,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." }
-});
-var isAllowedOrigin = (origin) => {
-  if (!origin) return true;
+var isAllowedOrigin = (origin, callback) => {
+  if (!origin) return callback(null, true);
   const explicit = [process.env.FRONTEND_URL].filter(Boolean);
-  const local = ["http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:3001"];
-  if (explicit.includes(origin) || local.includes(origin)) return true;
-  if (/https:\/\/.+\.vercel\.app$/i.test(origin)) return true;
-  return false;
+  const local = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ];
+  if (explicit.includes(origin) || local.includes(origin)) return callback(null, true);
+  if (/https:\/\/.+\.vercel\.app$/i.test(origin)) return callback(null, true);
+  return callback(null, false);
 };
 app.use(
   (0, import_cors.default)({
@@ -3089,66 +3435,101 @@ var PERSIST_DIR = process.env.PERSIST_DIR || import_path.default.join(process.cw
 if (!import_fs.default.existsSync(PERSIST_DIR)) {
   import_fs.default.mkdirSync(PERSIST_DIR, { recursive: true });
 }
-var SUBMISSIONS_FILE = import_path.default.join(PERSIST_DIR, "contact_submissions.json");
-var STATS_FILE = import_path.default.join(PERSIST_DIR, "stats.json");
-var distPath = import_path.default.resolve(process.cwd(), "dist");
-var isProduction = process.env.NODE_ENV === "production";
-if (isProduction || import_fs.default.existsSync(distPath)) {
-  console.log(`[Server] Serving static files from: ${distPath}`);
-  app.use(import_express2.default.static(distPath));
-}
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok", service: "convertoneai-api", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  res.status(200).json({
+    status: "ok",
+    service: "convertoneai-api",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
 });
 app.get("/api/health", (_req, res) => {
-  res.status(200).json({ status: "ok", service: "convertoneai-api", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  res.status(200).json({
+    status: "ok",
+    service: "convertoneai-api",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
 });
 DocumentTypeRegistry.initialize();
 PromptTemplateRegistry.initialize();
 ExportRegistry.initialize();
 app.use("/api", api_default);
+var distPath = import_path.default.resolve(process.cwd(), "dist");
 var indexHtmlPath = import_path.default.resolve(distPath, "index.html");
-if (isProduction || import_fs.default.existsSync(distPath) && import_fs.default.existsSync(indexHtmlPath)) {
+if (isProduction) {
+  console.log(`[Server] Serving static files from: ${distPath}`);
+  app.use(import_express2.default.static(distPath));
   console.log("[Server] SPA fallback registered");
   app.get("*", (_req, res) => {
     res.sendFile(indexHtmlPath);
   });
+} else {
+  console.log("[Server] Running in development mode. Vite middleware will be mounted on start.");
+  app.use((req, res, next) => {
+    if (app.locals.vite) {
+      app.locals.vite(req, res, next);
+    } else {
+      next();
+    }
+  });
 }
 app.use((req, res) => {
-  if ((isProduction || import_fs.default.existsSync(indexHtmlPath)) && req.accepts("html")) {
-    return res.sendFile(indexHtmlPath);
-  }
   res.status(404).json({ error: "Not Found" });
 });
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error("[Server] Unhandled error:", err);
   res.status(500).json({ error: "Internal Server Error" });
 });
 function createApp() {
   return app;
 }
+var serverStarted = false;
 async function startServer(port = PORT) {
-  const runtimePort = parseInt(String(process.env.PORT ?? "")) || port;
-  const isRailway = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_ENVIRONMENT_NAME);
-  const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev" || !process.env.NODE_ENV && !isRailway;
-  if (isDevelopment) {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa"
-    });
-    app.use(vite.middlewares);
-    console.log("[Server] Vite development middleware mounted successfully.");
-  } else {
-    console.log("[Server] Running in production mode without Vite middleware.");
+  if (serverStarted) {
+    console.warn("[Server] startServer() called more than once. Ignoring duplicate call.");
+    return;
   }
-  const server = app.listen(runtimePort, "0.0.0.0", () => {
-    console.log(`[Server] ConvertOneAI server listening on port ${runtimePort}`);
-    console.log(`[Server] Persistence dir: ${PERSIST_DIR}`);
-    console.log(`[Server] Admin login endpoint: POST /api${process.env.ADMIN_LOGIN_PATH || "/auth/admin/login"}`);
+  serverStarted = true;
+  const runtimePort = parseInt(String(process.env.PORT ?? "")) || port;
+  const server = await new Promise((resolve, reject) => {
+    const srv = app.listen(runtimePort, () => {
+      resolve(srv);
+    });
+    srv.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.error(
+          `[Server] FATAL: Port ${runtimePort} is already in use. Is another instance already running?
+  Kill it with: taskkill /F /PID <PID>
+  Find it with:  netstat -ano | findstr :${runtimePort}`
+        );
+      } else {
+        console.error(`[Server] FATAL: Failed to listen on port ${runtimePort}:`, err.message);
+      }
+      reject(err);
+    });
   });
+  if (!isProduction) {
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa"
+      });
+      app.locals.vite = vite.middlewares;
+      console.log("[Server] Vite development middleware mounted successfully.");
+    } catch (viteErr) {
+      console.error("[Server] FATAL: Failed to create Vite dev server:", viteErr);
+      server.close();
+      process.exit(1);
+    }
+  }
+  console.log(`[Server] ConvertOneAI server listening on port ${runtimePort}`);
+  console.log(`[Server] Persistence dir: ${PERSIST_DIR}`);
+  console.log(
+    `[Server] Admin login endpoint: POST /api${process.env.ADMIN_LOGIN_PATH || "/auth/admin/login"}`
+  );
   const shutdown = (signal) => {
     console.log(`[Server] Received ${signal}, shutting down gracefully.`);
+    serverStarted = false;
     server.close(() => process.exit(0));
   };
   process.on("SIGTERM", shutdown);

@@ -19,6 +19,7 @@ import MarkdownPreview from "./MarkdownPreview";
 import AIWorkspace from "../ai/components/AIWorkspace";
 import AIOptionsPanel from "../ai/components/AIOptionsPanel";
 import EnhancedProgressBar from "../ai/components/EnhancedProgressBar";
+import { toolsRegistry } from "../ai/registries/toolsRegistry";
 
 interface ConversionUIProps {
   viewMode: ViewMode;
@@ -163,18 +164,25 @@ console.log("Welcome to ConvertOneAI!");
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-xs tracking-wider uppercase font-sans border border-indigo-100 mb-2">
                 <ShieldCheck size={12} className="stroke-[2.5]" />
-                <span>Volatile Memory • 100% Secure</span>
+                <span>AI Document Intelligence Platform</span>
               </div>
               <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight font-sans">
                 {viewMode === "convert-word" && <>Word to Markdown converter | Free &amp; Clean MD</>}
                 {viewMode === "convert-pdf" && <>Convert PDF to Markdown | Online Document Converter</>}
-                {viewMode === "home" && <>Convert PDF to Markdown &amp; Word Documents Instantly</>}
+                {viewMode === "home" && <>Convert, Clean, Analyze &amp; Prepare Documents for AI Systems</>}
               </h1>
               <p className="text-slate-500 text-sm md:text-base leading-relaxed max-w-lg font-sans">
-                {viewMode === "convert-word" && "Extract clean structures, tabular data, and lists from Word documents. Experience docx to markdown free translations instantly."}
-                {viewMode === "convert-pdf" && "Repurpose your PDFs into lightweight, plain-text assets. Enjoy premium PDF to MD online rendering with our secure converter."}
-                {viewMode === "home" && "Transform files with our secure online document converter. Experience seamless docx to markdown free translations and pristine, high-fidelity PDF to MD online conversions with zero registrations."}
+                Transform PDFs, Word, PPTX, Excel, HTML, EPUB, and Images into structured Markdown, RAG vector datasets, engineered prompts, and cleaned AI context with zero registrations.
               </p>
+
+              {/* Feature Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                {["✓ AI Ready", "✓ OCR", "✓ RAG", "✓ JSONL", "✓ Prompt Generator", "✓ Metadata"].map((badge, i) => (
+                  <span key={i} className="text-[11px] font-bold text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100">
+                    {badge}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Upload Zone */}
@@ -184,7 +192,7 @@ console.log("Welcome to ConvertOneAI!");
               onDragLeave={handleDragOverLocal}
               onDrop={handleDropLocal}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col bg-white border-2 border-dashed rounded-2xl p-8 items-center justify-center text-center group transition-all relative cursor-pointer min-h-[260px] ${
+              className={`flex flex-col bg-white border-2 border-dashed rounded-2xl p-8 items-center justify-center text-center group transition-all relative cursor-pointer min-h-[240px] ${
                 dragActiveLocal ? "border-indigo-500 bg-indigo-50/20" : "border-slate-300 hover:border-indigo-400 bg-opacity-50"
               }`}
             >
@@ -196,7 +204,7 @@ console.log("Welcome to ConvertOneAI!");
                 accept={
                   viewMode === "convert-word" ? ".docx" :
                   viewMode === "convert-pdf" ? ".pdf" :
-                  ".docx,.pdf"
+                  ".docx,.pdf,.pptx,.xlsx,.xls,.csv,.epub,.html,.htm,.png,.jpg,.jpeg,.webp,.bmp"
                 }
                 onChange={handleFileChange}
               />
@@ -226,40 +234,96 @@ console.log("Welcome to ConvertOneAI!");
                   {file ? "File selected & ready" : "Drop your file here"}
                 </p>
                 <p className="text-slate-400 text-xs">
-                  {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : `Supports .docx, .pdf up to 50MB`}
+                  {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : `Supports PDF, Word, PPTX, Excel, EPUB, HTML & Images`}
                 </p>
               </div>
 
               {file ? (
                 <button
                   type="button"
-                  className="mt-5 bg-indigo-600 text-white px-5 py-2 rounded-xl font-semibold shadow hover:bg-indigo-700 transition-all text-xs cursor-pointer"
+                  className="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-xl font-semibold shadow hover:bg-indigo-700 transition-all text-xs cursor-pointer"
                 >
-                  Ready to Transpile
+                  File Selected
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="mt-5 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl font-medium shadow-sm hover:bg-slate-50 transition-all text-xs cursor-pointer"
+                  className="mt-4 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl font-medium shadow-sm hover:bg-slate-50 transition-all text-xs cursor-pointer"
                 >
                   Choose File
                 </button>
               )}
             </div>
 
-            {/* AI Options Panel - shown when file is selected */}
+            {/* Post-Upload Action Selector (Shown immediately when file is selected) */}
             {file && !converting && (
-              <AIOptionsPanel options={aiOptions} onChange={setAiOptions} />
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Zap size={14} className="text-indigo-600" />
+                    Select Action for Uploaded File
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded">File Ready</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <button
+                    onClick={() => setAiOptions({ cleanForAI: false, generateSummary: false, generatePrompt: false, generateRAG: false })}
+                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                      !aiOptions.cleanForAI && !aiOptions.generateSummary && !aiOptions.generatePrompt && !aiOptions.generateRAG
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <div>Standard Convert</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Direct Document → Markdown</div>
+                  </button>
+
+                  <button
+                    onClick={() => setAiOptions({ cleanForAI: true, generateSummary: false, generatePrompt: false, generateRAG: false })}
+                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                      aiOptions.cleanForAI && !aiOptions.generateSummary && !aiOptions.generatePrompt
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <div>Clean for AI</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Purge Headers &amp; Footers</div>
+                  </button>
+
+                  <button
+                    onClick={() => setAiOptions({ cleanForAI: true, generateSummary: true, generatePrompt: false, generateRAG: false })}
+                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                      aiOptions.generateSummary
+                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <div>AI Summary</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Extract Overview &amp; Key Points</div>
+                  </button>
+
+                  <button
+                    onClick={() => setAiOptions({ cleanForAI: true, generateSummary: true, generatePrompt: true, generateRAG: true })}
+                    className="p-2.5 rounded-xl border border-indigo-600 bg-indigo-600 text-white text-left font-bold shadow-sm transition-all cursor-pointer sm:col-span-2 flex items-center justify-between"
+                  >
+                    <div>
+                      <div>Prepare for AI (Recommended)</div>
+                      <div className="text-[10px] text-indigo-100 font-normal">Full Clean + Summary + Prompt + RAG Pipeline</div>
+                    </div>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Transpile CTA if file selected */}
             {file && !converting && (
               <button
                 onClick={runConversion}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md cursor-pointer transition-all text-sm animate-bounce"
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md cursor-pointer transition-all text-sm"
               >
                 <Zap size={15} className="fill-white animate-pulse" />
-                <span>Transpile into Markdown Now</span>
+                <span>Run Action &amp; Transpile Document</span>
               </button>
             )}
 
@@ -463,6 +527,59 @@ console.log("Welcome to ConvertOneAI!");
         <AIWorkspace markdown={editedMarkdown} fileName={file?.name} />
         </>
       )}
+      {/* Featured Top 5 AI Tools Capabilities Section (Uncluttered Layout) */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-6 text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
+          <div className="space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Platform Capabilities</span>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+              Featured AI Document Intelligence Tools
+            </h2>
+            <p className="text-slate-500 text-xs md:text-sm font-sans">
+              Top document preparation, cleaning, summarizing, prompt engineering, and dataset export capabilities.
+            </p>
+          </div>
+          <button
+            onClick={() => setViewMode("tools")}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition-all cursor-pointer shrink-0"
+          >
+            <span>View All AI Tools</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {toolsRegistry.getFeatured().map((tool) => (
+            <div
+              key={tool.id}
+              onClick={() => setViewMode("tools")}
+              className="p-4 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all flex flex-col justify-between group cursor-pointer"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-2xs group-hover:border-indigo-200">
+                    <Zap size={16} className="text-indigo-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                    Featured
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  {tool.title}
+                </h3>
+                <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                  {tool.shortDescription}
+                </p>
+              </div>
+
+              <div className="mt-3 pt-2 text-[11px] font-bold text-indigo-600 flex items-center gap-1">
+                <span>Explore Tool</span>
+                <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Core Keyword-Optimized SEO Features (Speed, Privacy, Output Quality) */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">

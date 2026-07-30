@@ -22,6 +22,10 @@ export interface CleanerOptions {
   normalizeWhitespace: boolean;
   improveHeadings: boolean;
   preserveTables: boolean;
+  removeReferences: boolean;
+  removeHtmlTags: boolean;
+  removeAdvertisements: boolean;
+  encodingRepair: boolean;
 }
 
 export const DEFAULT_CLEANER_OPTIONS: CleanerOptions = {
@@ -33,6 +37,10 @@ export const DEFAULT_CLEANER_OPTIONS: CleanerOptions = {
   normalizeWhitespace: true,
   improveHeadings: true,
   preserveTables: true,
+  removeReferences: true,
+  removeHtmlTags: true,
+  removeAdvertisements: true,
+  encodingRepair: true,
 };
 
 export class DocumentCleanerService {
@@ -46,15 +54,68 @@ export class DocumentCleanerService {
     const opts = { ...DEFAULT_CLEANER_OPTIONS, ...options };
     let result = markdown;
 
+    if (opts.encodingRepair) result = this.repairEncoding(result);
     if (opts.removeHeaders) result = this.removeRepeatedHeaders(result);
     if (opts.removeFooters) result = this.removeRepeatedFooters(result);
     if (opts.removePageNumbers) result = this.removePageNumbers(result);
     if (opts.removeDuplicates) result = this.removeDuplicatedLines(result);
+    if (opts.removeAdvertisements) result = this.removeAdvertisements(result);
+    if (opts.removeReferences) result = this.removeReferences(result);
+    if (opts.removeHtmlTags) result = this.removeHtmlTags(result);
     if (opts.mergeParagraphs) result = this.mergeBrokenParagraphs(result);
     if (opts.normalizeWhitespace) result = this.normalizeWhitespace(result);
     if (opts.improveHeadings) result = this.improveHeadingHierarchy(result);
 
     return result;
+  }
+
+  /**
+   * Repair common broken UTF-8 encoding sequences.
+   */
+  private static repairEncoding(markdown: string): string {
+    return markdown
+      .replace(/â€™/g, "'")
+      .replace(/â€œ/g, '"')
+      .replace(/â€/g, '"')
+      .replace(/â€“/g, "–")
+      .replace(/â€”/g, "—")
+      .replace(/Ã©/g, "é")
+      .replace(/Ã/g, "à");
+  }
+
+  /**
+   * Remove citation brackets and reference markers like [1], [2,3].
+   */
+  private static removeReferences(markdown: string): string {
+    return markdown.replace(/\[\d+(?:[,\s;]+\d+)*\]/g, "");
+  }
+
+  /**
+   * Remove residual inline HTML tags while preserving table markup if present.
+   */
+  private static removeHtmlTags(markdown: string): string {
+    return markdown.replace(/<\/?(div|span|font|p|br|center|section|article|header|footer)\b[^>]*>/gi, "");
+  }
+
+  /**
+   * Remove advertisement lines and sponsored links.
+   */
+  private static removeAdvertisements(markdown: string): string {
+    const lines = markdown.split("\n");
+    return lines
+      .filter((line) => {
+        const trimmed = line.trim().toLowerCase();
+        if (
+          trimmed.startsWith("advertisement") ||
+          trimmed.startsWith("sponsored link") ||
+          trimmed === "click here to subscribe" ||
+          trimmed.includes("all rights reserved. powered by")
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .join("\n");
   }
 
   /**
