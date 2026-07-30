@@ -138,20 +138,10 @@ app.use("/api", apiRoutes);
 //   Production:  API → Express static dist/ → SPA fallback * → 404 → Error
 // The two modes are MUTUALLY EXCLUSIVE. Never both active at the same time.
 
-import prerenderNode from "prerender-node";
-
 const distPath = path.resolve(process.cwd(), "dist");
 const indexHtmlPath = path.resolve(distPath, "index.html");
 
 if (isProduction) {
-  // Prerender.io middleware for search engine bot interception
-  if (process.env.PRERENDER_TOKEN) {
-    prerenderNode.set("prerenderToken", process.env.PRERENDER_TOKEN);
-    prerenderNode.set("forwardHeaders", true);
-    app.use(prerenderNode);
-    console.log("[Server] Prerender.io middleware initialized.");
-  }
-
   // ---------------------------------------------------------------
   // PRODUCTION MODE: Express serves the built frontend from dist/
   // ---------------------------------------------------------------

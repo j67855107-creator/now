@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build:frontend": "npx vite build",
+    "build:seo": "node scripts/inject-seo-shell.cjs",
     "build:backend": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "build": "npm run build:frontend && npm run build:backend",
+    "build": "npm run build:frontend && npm run build:seo && npm run build:backend",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
@@ -32,7 +33,6 @@
     "pdf-export-images": "^1.2.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^6.1.200",
-    "prerender-node": "^3.8.3",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-helmet-async": "^3.0.0",
