@@ -44,3 +44,9 @@ declare module "turndown-plugin-gfm" {
   export const highlightedCodeBlock: any;
 }
 
+declare module "prerender-node" {
+  const prerender: any;
+  export default prerender;
+}
+
+
