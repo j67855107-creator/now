@@ -59,18 +59,18 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
   return (
     <div className="max-w-xl mx-auto text-left font-sans">
       <div className="text-center space-y-3 pb-6 select-none">
-        <div className="inline-block p-3 rounded-full bg-indigo-50 text-indigo-600 mb-1 border border-indigo-100 shadow-sm">
+        <div className="inline-block p-3 rounded-full bg-[#FAF8F3] text-[#2F6F5E] mb-1 border border-[#E4E0D8] shadow-xs">
           <Mail size={24} />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Contact Support</h1>
-        <p className="text-gray-500 text-xs sm:text-sm">
+        <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#171B26] tracking-tight">Contact Support</h1>
+        <p className="text-[#6B6459] text-xs sm:text-sm">
           Have feature recommendations, API integrations, or bug filings? Dispatch them straight to our desk.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-150 p-6 shadow-sm space-y-4">
+      <form onSubmit={handleSubmit} className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 shadow-xs space-y-4">
         <div className="space-y-1.5 text-left">
-          <label htmlFor="contact-name" className="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+          <label htmlFor="contact-name" className="text-xs font-mono font-bold uppercase tracking-wider text-[#6B6459] block">
             Full Name <span className="text-rose-500">*</span>
           </label>
           <input
@@ -78,7 +78,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
             id="contact-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full px-3.5 py-2 rounded-lg border border-[#E4E0D8] bg-white text-sm text-[#171B26] focus:outline-none focus:border-[#2F6F5E] disabled:bg-[#E4E0D8]/40 disabled:text-[#6B6459]"
             placeholder="e.g. Liam Cole"
             disabled={sending || sent}
             required
@@ -86,7 +86,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
         </div>
 
         <div className="space-y-1.5 text-left">
-          <label htmlFor="contact-email" className="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+          <label htmlFor="contact-email" className="text-xs font-mono font-bold uppercase tracking-wider text-[#6B6459] block">
             Email Address <span className="text-rose-500">*</span>
           </label>
           <input
@@ -94,7 +94,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
             id="contact-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full px-3.5 py-2 rounded-lg border border-[#E4E0D8] bg-white text-sm text-[#171B26] focus:outline-none focus:border-[#2F6F5E] disabled:bg-[#E4E0D8]/40 disabled:text-[#6B6459]"
             placeholder="e.g. client@example.com"
             disabled={sending || sent}
             required
@@ -102,7 +102,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
         </div>
 
         <div className="space-y-1.5 text-left">
-          <label htmlFor="contact-subject" className="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+          <label htmlFor="contact-subject" className="text-xs font-mono font-bold uppercase tracking-wider text-[#6B6459] block">
             Subject <span className="text-rose-500">*</span>
           </label>
           <input
@@ -110,7 +110,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
             id="contact-subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full px-3.5 py-2 rounded-lg border border-[#E4E0D8] bg-white text-sm text-[#171B26] focus:outline-none focus:border-[#2F6F5E] disabled:bg-[#E4E0D8]/40 disabled:text-[#6B6459]"
             placeholder="e.g. Invalidation with complex nested tables"
             disabled={sending || sent}
             required
@@ -118,14 +118,14 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
         </div>
 
         <div className="space-y-1.5 text-left">
-          <label htmlFor="contact-msg" className="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+          <label htmlFor="contact-msg" className="text-xs font-mono font-bold uppercase tracking-wider text-[#6B6459] block">
             Message <span className="text-rose-500">*</span>
           </label>
           <textarea
             id="contact-msg"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full h-32 px-3.5 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full h-32 px-3.5 py-2 rounded-lg border border-[#E4E0D8] bg-white text-sm text-[#171B26] focus:outline-none focus:border-[#2F6F5E] resize-none disabled:bg-[#E4E0D8]/40 disabled:text-[#6B6459]"
             placeholder="Compose your support query or proposal here..."
             disabled={sending || sent}
             required
@@ -135,7 +135,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
         <button
           type="submit"
           disabled={sending || sent}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm shadow transition-all flex items-center justify-center gap-2 disabled:bg-indigo-400 disabled:cursor-not-allowed cursor-pointer text-center"
+          className="w-full bg-[#2F6F5E] hover:bg-[#275F50] text-[#F6F4EE] font-semibold py-2.5 rounded-xl text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:bg-[#2F6F5E]/60 disabled:cursor-not-allowed cursor-pointer text-center"
           id="btn-contact-submit"
         >
           {sending ? (
@@ -148,7 +148,7 @@ export default function ContactView({ triggerAlert }: ContactViewProps) {
               ? "Sending Message..."
               : sent
                 ? "Message Transferred"
-                : "Send Information Pack"}
+                : "Send Message"}
           </span>
         </button>
       </form>

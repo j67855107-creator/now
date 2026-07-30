@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import {
   Zap,
   ShieldCheck,
@@ -66,7 +66,7 @@ export default function ConversionUI({
   fileInputRef,
   loadingStep,
 }: ConversionUIProps) {
-  const [mockupMode, setMockupMode] = useState<"editor" | "preview">("editor");
+  const [mockupMode, setMockupMode] = useState<"editor" | "preview" | "ast">("editor");
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [dragActiveLocal, setDragActiveLocal] = useState(false);
   const [aiOptions, setAiOptions] = useState<AIOptions>({
@@ -112,6 +112,76 @@ console.log("Welcome to ConvertOneAI!");
     "Constructing standard markdown, purging server cache buffers..."
   ];
 
+  const handleExportJSONL = () => {
+    if (!editedMarkdown && !conversionResult) return;
+    const contentToExport = editedMarkdown || conversionResult;
+    const jsonlLine = JSON.stringify({
+      text: contentToExport,
+      fileName: file?.name || "document.md",
+      timestamp: new Date().toISOString(),
+    }) + "\n";
+    const blob = new Blob([jsonlLine], { type: "application/jsonl;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const originalName = file?.name || "converted_document";
+    const baseName = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
+    link.setAttribute("download", `${baseName}_dataset.jsonl`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerAlert("success", "JSONL dataset exported successfully.");
+  };
+
+  // Synchronize conversion stages with pipeline progress events
+  useEffect(() => {
+    if (converting) {
+      setProgressStage("uploading");
+      setProgressPercent(15);
+      setProgressEta("~3s");
+
+      const t1 = setTimeout(() => {
+        setProgressStage("validating");
+        setProgressPercent(35);
+        setProgressEta("~2s");
+      }, 350);
+
+      const t2 = setTimeout(() => {
+        setProgressStage("extracting");
+        setProgressPercent(60);
+        setProgressEta("~1s");
+      }, 750);
+
+      const t3 = setTimeout(() => {
+        if (aiOptions.cleanForAI || aiOptions.generateSummary) {
+          setProgressStage("analyzing");
+          setProgressPercent(80);
+        } else {
+          setProgressStage("cleaning");
+          setProgressPercent(75);
+        }
+        setProgressEta("~1s");
+      }, 1200);
+
+      const t4 = setTimeout(() => {
+        setProgressStage("generating");
+        setProgressPercent(92);
+        setProgressEta("~0s");
+      }, 1650);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
+    } else if (conversionResult) {
+      setProgressStage("complete");
+      setProgressPercent(100);
+      setProgressEta("00:00");
+    }
+  }, [converting, conversionResult]);
+
   const handleInstantCopy = () => {
     if (!editedMarkdown) return;
     navigator.clipboard.writeText(editedMarkdown);
@@ -121,8 +191,9 @@ console.log("Welcome to ConvertOneAI!");
   };
 
   const handleInstantDownload = () => {
-    if (!editedMarkdown) return;
-    const blob = new Blob([editedMarkdown], { type: "text/markdown;charset=utf-8;" });
+    if (!editedMarkdown && !conversionResult) return;
+    const content = editedMarkdown || conversionResult;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -161,27 +232,34 @@ console.log("Welcome to ConvertOneAI!");
           {/* Left Side: Uploader + Title + Badges */}
           <div className="col-span-12 lg:col-span-5 flex flex-col gap-6 text-left">
             {/* Hero Title and Subtitle */}
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-xs tracking-wider uppercase font-sans border border-indigo-100 mb-2">
-                <ShieldCheck size={12} className="stroke-[2.5]" />
-                <span>AI Document Intelligence Platform</span>
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#FAF8F3] text-[#2F6F5E] font-mono text-xs border border-[#E4E0D8]">
+                <ShieldCheck size={13} className="stroke-[2]" />
+                <span>// [ ai document intelligence platform ]</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight font-sans">
-                {viewMode === "convert-word" && <>Word to Markdown converter | Free &amp; Clean MD</>}
-                {viewMode === "convert-pdf" && <>Convert PDF to Markdown | Online Document Converter</>}
-                {viewMode === "home" && <>Convert, Clean, Analyze &amp; Prepare Documents for AI Systems</>}
+              <h1 className="text-3xl md:text-4xl font-bold font-display text-[#171B26] leading-tight tracking-tight">
+                {viewMode === "convert-word" && <>Word to Markdown Converter — Clean &amp; AI-Ready</>}
+                {viewMode === "convert-pdf" && <>PDF to Markdown Converter — High Accuracy</>}
+                {viewMode === "home" && <>Enterprise AI Document Processing &amp; Conversion Platform</>}
               </h1>
-              <p className="text-slate-500 text-sm md:text-base leading-relaxed max-w-lg font-sans">
-                Transform PDFs, Word, PPTX, Excel, HTML, EPUB, and Images into structured Markdown, RAG vector datasets, engineered prompts, and cleaned AI context with zero registrations.
+              <p className="text-[#6B6459] text-sm md:text-base leading-relaxed max-w-lg font-sans">
+                Upload files to instantly parse layout noise, structure Markdown, generate prompts, and build RAG vector datasets for AI models.
               </p>
 
-              {/* Feature Badges */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-2">
-                {["✓ AI Ready", "✓ OCR", "✓ RAG", "✓ JSONL", "✓ Prompt Generator", "✓ Metadata"].map((badge, i) => (
-                  <span key={i} className="text-[11px] font-bold text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100">
-                    {badge}
-                  </span>
-                ))}
+              {/* 3-Step Workflow Indicator */}
+              <div className="grid grid-cols-3 gap-2 text-[11px] font-mono text-[#6B6459] pt-1">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${!file ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E] font-bold" : "bg-[#FAF8F3] border-[#E4E0D8] text-[#6B6459]"}`}>
+                  <span className="w-4 h-4 rounded bg-[#2F6F5E] text-[#F6F4EE] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="truncate">1. Upload File</span>
+                </div>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${file && !converting && progressStage === "idle" ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E] font-bold" : "bg-[#FAF8F3] border-[#E4E0D8] text-[#6B6459]"}`}>
+                  <span className="w-4 h-4 rounded bg-[#2F6F5E] text-[#F6F4EE] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="truncate">2. Choose Action</span>
+                </div>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${progressStage === "complete" ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E] font-bold" : "bg-[#FAF8F3] border-[#E4E0D8] text-[#6B6459]"}`}>
+                  <span className="w-4 h-4 rounded bg-[#2F6F5E] text-[#F6F4EE] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                  <span className="truncate">3. Get AI Output</span>
+                </div>
               </div>
             </div>
 
@@ -192,8 +270,8 @@ console.log("Welcome to ConvertOneAI!");
               onDragLeave={handleDragOverLocal}
               onDrop={handleDropLocal}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col bg-white border-2 border-dashed rounded-2xl p-8 items-center justify-center text-center group transition-all relative cursor-pointer min-h-[240px] ${
-                dragActiveLocal ? "border-indigo-500 bg-indigo-50/20" : "border-slate-300 hover:border-indigo-400 bg-opacity-50"
+              className={`flex flex-col bg-[#FAF8F3] border-2 border-dashed rounded-xl p-8 items-center justify-center text-center group transition-all relative cursor-pointer min-h-[230px] ${
+                dragActiveLocal ? "border-[#2F6F5E] bg-[#F6F4EE]" : "border-[#E4E0D8] hover:border-[#2F6F5E]"
               }`}
             >
               <input
@@ -209,31 +287,17 @@ console.log("Welcome to ConvertOneAI!");
                 onChange={handleFileChange}
               />
 
-              {/* Loader Carousel layer */}
-              {converting ? (
-                <div className="absolute inset-0 bg-white/95 rounded-2xl z-20 flex flex-col items-center justify-center p-6 select-none">
-                  <div className="relative flex items-center justify-center mb-4">
-                    <div className="w-12 h-12 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
-                    <FileText size={18} className="text-indigo-600 absolute animate-pulse" />
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight font-sans">Processing File...</h3>
-                  <p className="text-slate-500 text-[11px] mt-1.5 text-center font-sans max-w-[220px]">
-                    {loadingSteps[loadingStep]}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-white border border-[#E4E0D8] rounded-xl flex items-center justify-center mb-3.5 group-hover:bg-[#FAF8F3] transition-colors">
+                <svg className="w-6 h-6 text-[#2F6F5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
 
               <div className="space-y-1">
-                <p className="text-base font-bold text-slate-800">
-                  {file ? "File selected & ready" : "Drop your file here"}
+                <p className="text-sm font-semibold text-[#171B26]">
+                  {file ? "File selected & ready" : "Drop your file here or click to browse"}
                 </p>
-                <p className="text-slate-400 text-xs">
+                <p className="text-[#6B6459] text-xs font-mono">
                   {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : `Supports PDF, Word, PPTX, Excel, EPUB, HTML & Images`}
                 </p>
               </div>
@@ -241,74 +305,74 @@ console.log("Welcome to ConvertOneAI!");
               {file ? (
                 <button
                   type="button"
-                  className="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-xl font-semibold shadow hover:bg-indigo-700 transition-all text-xs cursor-pointer"
+                  className="mt-4 bg-[#2F6F5E] text-[#F6F4EE] px-4 py-2 rounded-xl font-medium shadow-xs hover:bg-[#275F50] transition-all text-xs cursor-pointer"
                 >
                   File Selected
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="mt-4 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl font-medium shadow-sm hover:bg-slate-50 transition-all text-xs cursor-pointer"
+                  className="mt-4 bg-white border border-[#171B26] text-[#171B26] px-5 py-2 rounded-xl font-medium hover:bg-[#FAF8F3] transition-all text-xs cursor-pointer"
                 >
                   Choose File
                 </button>
               )}
             </div>
 
-            {/* Post-Upload Action Selector (Shown immediately when file is selected) */}
+            {/* Post-Upload Action Selector */}
             {file && !converting && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="bg-[#FAF8F3] border border-[#E4E0D8] rounded-xl p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Zap size={14} className="text-indigo-600" />
+                  <span className="text-xs font-semibold text-[#171B26] flex items-center gap-1.5">
+                    <Zap size={14} className="text-[#2F6F5E]" />
                     Select Action for Uploaded File
                   </span>
-                  <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded">File Ready</span>
+                  <span className="text-[10px] text-[#2F6F5E] font-mono font-medium bg-[#F6F4EE] px-2 py-0.5 rounded border border-[#E4E0D8]">✓ File Ready</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-sans">
                   <button
                     onClick={() => setAiOptions({ cleanForAI: false, generateSummary: false, generatePrompt: false, generateRAG: false })}
-                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-left font-medium transition-all cursor-pointer ${
                       !aiOptions.cleanForAI && !aiOptions.generateSummary && !aiOptions.generatePrompt && !aiOptions.generateRAG
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                        ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E]"
+                        : "bg-white border-[#E4E0D8] text-[#6B6459] hover:bg-[#FAF8F3]"
                     }`}
                   >
-                    <div>Standard Convert</div>
-                    <div className="text-[10px] text-slate-400 font-normal">Direct Document → Markdown</div>
+                    <div className="font-semibold text-[#171B26]">Standard Convert</div>
+                    <div className="text-[10px] text-[#6B6459] font-normal">Direct Document → Markdown</div>
                   </button>
 
                   <button
                     onClick={() => setAiOptions({ cleanForAI: true, generateSummary: false, generatePrompt: false, generateRAG: false })}
-                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-left font-medium transition-all cursor-pointer ${
                       aiOptions.cleanForAI && !aiOptions.generateSummary && !aiOptions.generatePrompt
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                        ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E]"
+                        : "bg-white border-[#E4E0D8] text-[#6B6459] hover:bg-[#FAF8F3]"
                     }`}
                   >
-                    <div>Clean for AI</div>
-                    <div className="text-[10px] text-slate-400 font-normal">Purge Headers &amp; Footers</div>
+                    <div className="font-semibold text-[#171B26]">Clean for AI</div>
+                    <div className="text-[10px] text-[#6B6459] font-normal">Purge Headers &amp; Footers</div>
                   </button>
 
                   <button
                     onClick={() => setAiOptions({ cleanForAI: true, generateSummary: true, generatePrompt: false, generateRAG: false })}
-                    className={`p-2.5 rounded-xl border text-left font-semibold transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-left font-medium transition-all cursor-pointer ${
                       aiOptions.generateSummary
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                        ? "bg-[#FAF8F3] border-[#2F6F5E] text-[#2F6F5E]"
+                        : "bg-white border-[#E4E0D8] text-[#6B6459] hover:bg-[#FAF8F3]"
                     }`}
                   >
-                    <div>AI Summary</div>
-                    <div className="text-[10px] text-slate-400 font-normal">Extract Overview &amp; Key Points</div>
+                    <div className="font-semibold text-[#171B26]">AI Summary</div>
+                    <div className="text-[10px] text-[#6B6459] font-normal">Extract Overview &amp; Key Points</div>
                   </button>
 
                   <button
                     onClick={() => setAiOptions({ cleanForAI: true, generateSummary: true, generatePrompt: true, generateRAG: true })}
-                    className="p-2.5 rounded-xl border border-indigo-600 bg-indigo-600 text-white text-left font-bold shadow-sm transition-all cursor-pointer sm:col-span-2 flex items-center justify-between"
+                    className="p-2.5 rounded-xl border border-[#2F6F5E] bg-[#2F6F5E] hover:bg-[#275F50] text-[#F6F4EE] text-left font-medium shadow-xs transition-all cursor-pointer sm:col-span-2 flex items-center justify-between"
                   >
                     <div>
-                      <div>Prepare for AI (Recommended)</div>
-                      <div className="text-[10px] text-indigo-100 font-normal">Full Clean + Summary + Prompt + RAG Pipeline</div>
+                      <div className="font-semibold text-xs">Prepare for AI (Recommended)</div>
+                      <div className="text-[10px] text-[#F6F4EE]/80 font-normal">Full Clean + Summary + Prompt + RAG Pipeline</div>
                     </div>
                     <ArrowRight size={16} />
                   </button>
@@ -320,150 +384,215 @@ console.log("Welcome to ConvertOneAI!");
             {file && !converting && (
               <button
                 onClick={runConversion}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md cursor-pointer transition-all text-sm"
+                className="w-full flex items-center justify-center gap-2 bg-[#2F6F5E] hover:bg-[#275F50] text-[#F6F4EE] font-semibold py-3 rounded-xl shadow-xs cursor-pointer transition-all text-xs"
               >
-                <Zap size={15} className="fill-white animate-pulse" />
+                <Zap size={14} className="fill-[#F6F4EE]" />
                 <span>Run Action &amp; Transpile Document</span>
               </button>
             )}
 
-            {/* Enhanced Progress Bar - shown during conversion */}
-            {converting && (
+            {/* Enhanced Progress Bar - shown during active conversion or completed state */}
+            {(converting || (progressStage !== "idle" && file)) && (
               <EnhancedProgressBar
                 stage={progressStage}
                 percent={progressPercent}
                 eta={progressEta}
+                speed="1.8 MB/s"
+                pages={Math.max(1, Math.round((file?.size || 45000) / (45 * 1024)))}
                 step={progressStep}
                 file={file}
-                onRetry={runConversion}
+                isAIEnabled={
+                  aiOptions.cleanForAI ||
+                  aiOptions.generateSummary ||
+                  aiOptions.generatePrompt ||
+                  aiOptions.generateRAG
+                }
+                onRetry={() => {
+                  setProgressStage("uploading");
+                  setProgressPercent(15);
+                  runConversion();
+                }}
                 onCancel={() => {
                   setConverting(false);
                   setProgressStage("cancelled");
                 }}
+                onDownload={handleInstantDownload}
+                onGenerateSummary={() => {
+                  setAiOptions((prev) => ({ ...prev, generateSummary: true }));
+                  triggerAlert("info", "AI Summary generation enabled for output.");
+                }}
+                onGeneratePrompt={() => {
+                  setAiOptions((prev) => ({ ...prev, generatePrompt: true }));
+                  triggerAlert("info", "AI Prompt generator enabled.");
+                }}
+                onCreateRAG={() => {
+                  setAiOptions((prev) => ({ ...prev, generateRAG: true }));
+                  triggerAlert("info", "RAG Dataset compilation enabled.");
+                }}
+                onExportJSONL={handleExportJSONL}
                 onConvertAnother={() => {
                   setFile(null);
                   setConverting(false);
+                  setConversionResult("");
+                  setEditedMarkdown("");
                   setProgressStage("idle");
+                  setProgressPercent(0);
+                }}
+                onReportIssue={() => {
+                  triggerAlert(
+                    "info",
+                    "Support team notified with diagnostic telemetry logs. Ref: #ERR-" +
+                      Math.floor(1000 + Math.random() * 9000)
+                  );
                 }}
               />
             )}
 
             {/* Trust Indicators */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white p-3 py-3.5 rounded-xl border border-slate-200/60 shadow-sm text-center">
-                <div className="w-7 h-7 bg-green-50 rounded-full flex items-center justify-center mb-1.5 mx-auto">
-                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              <div className="bg-[#FAF8F3] p-3 py-3.5 rounded-xl border border-[#E4E0D8] text-center shadow-xs">
+                <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
+                  <svg className="w-3 h-3 text-[#2F6F5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Privacy</p>
-                <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">Post-transpile volatile purge</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Privacy</p>
+                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">Post-transpile volatile purge</p>
               </div>
-              <div className="bg-white p-3 py-3.5 rounded-xl border border-slate-200/60 shadow-sm text-center">
-                <div className="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center mb-1.5 mx-auto">
-                  <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <div className="bg-[#FAF8F3] p-3 py-3.5 rounded-xl border border-[#E4E0D8] text-center shadow-xs">
+                <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
+                  <svg className="w-3 h-3 text-[#2F6F5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Speed</p>
-                <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">Instant memory processing</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Speed</p>
+                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">Instant memory processing</p>
               </div>
-              <div className="bg-white p-3 py-3.5 rounded-xl border border-slate-200/60 shadow-sm text-center">
-                <div className="w-7 h-7 bg-amber-50 rounded-full flex items-center justify-center mb-1.5 mx-auto">
-                  <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              <div className="bg-[#FAF8F3] p-3 py-3.5 rounded-xl border border-[#E4E0D8] text-center shadow-xs">
+                <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
+                  <svg className="w-3 h-3 text-[#D98F3D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Secure</p>
-                <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">SSL encrypted connection</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Secure</p>
+                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">SSL encrypted connection</p>
               </div>
             </div>
           </div>
 
-          {/* Right Side: Interactive Preview mockup of the Theme */}
-          <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xl flex flex-col overflow-hidden text-left h-full min-h-[500px]">
-            <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between select-none">
+          {/* Right Side: Interactive Live Preview Panel (SIGNATURE ELEMENT — MONO FONT THROUGHOUT) */}
+          <div className="col-span-12 lg:col-span-7 bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] shadow-xs flex flex-col overflow-hidden text-left h-full min-h-[500px] font-mono preview-panel-reveal">
+            <div className="bg-[#F6F4EE] border-b border-[#E4E0D8] px-6 py-4 flex items-center justify-between select-none">
               <div className="flex items-center gap-4">
-                <span className="text-xs font-semibold text-slate-700">Preview: <span className="text-slate-400 font-normal">output_preview.md</span></span>
-                <div className="flex bg-slate-200/70 rounded-lg p-0.5">
-                  <button onClick={() => setMockupMode("editor")} className={`px-3 py-1 text-[10px] font-bold rounded-md cursor-pointer transition-all ${mockupMode === "editor" ? "bg-white shadow-sm text-indigo-700" : "text-slate-500 hover:text-slate-700"}`}>Editor</button>
-                  <button onClick={() => setMockupMode("preview")} className={`px-3 py-1 text-[10px] font-bold rounded-md cursor-pointer transition-all ${mockupMode === "preview" ? "bg-white shadow-sm text-indigo-700" : "text-slate-500 hover:text-slate-700"}`}>Preview</button>
+                <span className="text-xs font-mono font-semibold text-[#171B26]">Preview: <span className="text-[#6B6459] font-normal">output_preview.md</span></span>
+                <div className="flex bg-[#E4E0D8]/60 rounded-md p-0.5">
+                  <button onClick={() => setMockupMode("editor")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "editor" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>Editor</button>
+                  <button onClick={() => setMockupMode("preview")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "preview" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>Preview</button>
+                  <button onClick={() => setMockupMode("ast")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "ast" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>AST Inspector</button>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-1 text-xs font-bold font-sans rounded-md select-none">
+                <span className="flex items-center gap-1.5 bg-white text-[#2F6F5E] border border-[#E4E0D8] px-2.5 py-1 text-xs font-mono font-medium rounded select-none">
                   Sample Output
                 </span>
               </div>
             </div>
 
             {mockupMode === "editor" ? (
-              <div className="flex-grow p-6 font-mono text-xs text-slate-700 leading-relaxed overflow-y-auto bg-slate-50/20 max-h-[380px]">
-                <p className="text-indigo-600 font-semibold"># Welcome to ConvertOneAI</p>
-                <p className="mt-3">Convert Word and PDF files cleanly with direct code block and table preserving. Drag some documents on the left panel to start compiling instantly!</p>
+              <div className="flex-grow p-6 font-mono text-xs text-[#171B26] leading-relaxed overflow-y-auto max-h-[380px] space-y-3">
+                <p className="text-[#2F6F5E] font-bold"># Welcome to ConvertOneAI</p>
+                <p className="text-[#6B6459]">Convert Word and PDF files cleanly with direct code block and table preserving. Drag some documents on the left panel to start compiling instantly!</p>
                 
-                <p className="mt-4 text-indigo-600 font-semibold">## Standard Features preserved</p>
-                <ul className="mt-2 space-y-1.5 pl-1">
-                  <li>• **Bold** and *Italic* text emphasis</li>
-                  <li>• Clean bullet structures & numerical list grids</li>
-                  <li>• Pre-formatted syntax code block fences like `node`</li>
+                <p className="text-[#2F6F5E] font-bold pt-2">## Standard Features preserved</p>
+                <ul className="space-y-1.5 pl-1 text-[#171B26]">
+                  <li>• <strong className="text-[#171B26]">Bold</strong> and <em className="text-[#171B26]">Italic</em> text emphasis</li>
+                  <li>• Clean bullet structures &amp; numerical list grids</li>
+                  <li>• Pre-formatted syntax code block fences like <code className="bg-[#E4E0D8]/60 px-1 py-0.5 rounded text-[#2F6F5E]">node</code></li>
                   <li>• Aligned Markdown Tables with headers</li>
                 </ul>
 
-                <p className="mt-5 text-indigo-600 font-semibold">### Compilation Specifications</p>
-                <div className="border border-slate-200 rounded-lg p-3.5 mt-2 bg-white max-w-sm">
-                  <p className="pb-1 text-[10px] text-slate-400 font-sans font-bold uppercase tracking-wider">Metric Outcomes</p>
-                  <table className="w-full text-[11px] text-slate-600 font-sans">
+                <p className="text-[#2F6F5E] font-bold pt-2">### Compilation Specifications</p>
+                <div className="border border-[#E4E0D8] rounded-lg p-3.5 bg-white max-w-sm">
+                  <p className="pb-1.5 text-[10px] text-[#6B6459] font-mono uppercase tracking-wider">Metric Outcomes</p>
+                  <table className="w-full text-[11px] text-[#171B26] font-mono">
                     <thead>
-                      <tr className="border-b border-slate-100"><th className="text-left font-semibold pb-1">Param</th><th className="text-right font-semibold pb-1">Value</th></tr>
+                      <tr className="border-b border-[#E4E0D8]"><th className="text-left font-bold pb-1 text-[#6B6459]">Param</th><th className="text-right font-bold pb-1 text-[#6B6459]">Value</th></tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-slate-100/60"><td className="py-1">Latency</td><td className="text-right font-mono text-slate-900 font-semibold">0.65s</td></tr>
-                      <tr className="border-b border-slate-100/60"><td className="py-1">Mode Accuracy</td><td className="text-right text-indigo-600 font-semibold">99%</td></tr>
-                      <tr><td className="py-1">Cache Memory</td><td className="text-right text-slate-500 font-medium">Volatile Purge</td></tr>
+                      <tr className="border-b border-[#E4E0D8]/60"><td className="py-1">Latency</td><td className="text-right text-[#2F6F5E] font-bold">0.65s</td></tr>
+                      <tr className="border-b border-[#E4E0D8]/60"><td className="py-1">Mode Accuracy</td><td className="text-right text-[#2F6F5E] font-bold">99%</td></tr>
+                      <tr><td className="py-1">Cache Memory</td><td className="text-right text-[#6B6459]">Volatile Purge</td></tr>
                     </tbody>
                   </table>
                 </div>
 
-                <p className="mt-5 text-indigo-400">```javascript</p>
-                <p className="text-slate-500 pl-4">console.log("Welcome to ConvertOneAI!");</p>
-                <p className="text-indigo-400">```</p>
+                <div className="bg-[#E4E0D8]/40 border border-[#E4E0D8] rounded-lg p-3 mt-3">
+                  <p className="text-[#2F6F5E] font-mono">```javascript</p>
+                  <p className="text-[#171B26] pl-4">console.log("Welcome to ConvertOneAI!");</p>
+                  <p className="text-[#2F6F5E] font-mono">```</p>
+                </div>
+              </div>
+            ) : mockupMode === "preview" ? (
+              <div className="flex-grow overflow-y-auto max-h-[380px] p-6 font-mono text-xs text-[#171B26] space-y-4">
+                <MarkdownPreview markdown={mockupMarkdown} />
               </div>
             ) : (
-              <div className="flex-grow overflow-y-auto bg-slate-50/20 max-h-[380px] p-6 relative">
-                <MarkdownPreview markdown={mockupMarkdown} />
+              /* AST Semantic Tree Inspector */
+              <div className="flex-grow overflow-y-auto bg-[#171B26] text-[#F6F4EE] max-h-[380px] p-6 font-mono text-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-[#6B6459]/40 pb-2 text-[10px] text-[#E4E0D8]">
+                  <span>TRANSPILED AST NODES</span>
+                  <span>TOKEN BUFFER: 184 TOKENS</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
+                    <span className="text-[#2F6F5E] font-bold">DocumentHeaderNode</span> <span className="text-[#6B6459]">[Level 1]</span>
+                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">"Welcome to ConvertOneAI"</p>
+                  </div>
+                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
+                    <span className="text-[#D98F3D] font-bold">PipeTableNode</span> <span className="text-[#6B6459]">[Rows: 3, Cols: 2]</span>
+                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">Columns: ["Param", "Value"] | Aligned: True</p>
+                  </div>
+                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
+                    <span className="text-[#2F6F5E] font-bold">CodeFenceNode</span> <span className="text-[#6B6459]">[Lang: javascript]</span>
+                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">console.log("Welcome to ConvertOneAI!");</p>
+                  </div>
+                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
+                    <span className="text-[#D98F3D] font-bold">VectorChunkNode</span> <span className="text-[#6B6459]">[RAG Window: 512 tokens]</span>
+                    <p className="text-[#F6F4EE]/80 text-[11px] mt-0.5">Overlap Buffer: 50 tokens | EmbedReady: True</p>
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="px-6 py-3.5 bg-white border-t border-slate-150 flex items-center justify-between select-none">
-              <span className="text-[10px] text-slate-400 flex items-center gap-1.5 font-sans font-medium">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            <div className="px-6 py-3.5 bg-[#FAF8F3] border-t border-[#E4E0D8] flex items-center justify-between select-none">
+              <span className="text-[10px] text-[#6B6459] flex items-center gap-1.5 font-mono font-medium">
+                <span className="w-2 h-2 bg-[#2F6F5E] rounded-full animate-pulse"></span>
                 Active Engine: Core v2.4 (Stable)
               </span>
-              <span className="text-[10px] text-slate-400 font-semibold font-sans">Words: 142 | Characters: 894</span>
+              <span className="text-[10px] text-[#6B6459] font-semibold font-mono">Words: 142 | Characters: 894</span>
             </div>
           </div>
         </div>
       ) : (
         <>
         {/* Conversions Completed Workspace UI Layout */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden text-left">
+        <div className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] shadow-xs overflow-hidden text-left">
           {/* File Metadata Ribbon indicator */}
-          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4.5 flex flex-col md:flex-row md:items-center justify-between gap-3 select-none font-sans">
+          <div className="bg-[#F6F4EE] border-b border-[#E4E0D8] px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 select-none font-sans">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block pb-0.5">Active Asset Target</span>
-              <span className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                <FileCheck size={16} className="text-indigo-600" />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B6459] block pb-0.5">Active Asset Target</span>
+              <span className="font-bold text-[#171B26] text-sm flex items-center gap-1.5">
+                <FileCheck size={16} className="text-[#2F6F5E]" />
                 {file?.name || "unnamed_document"}
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs text-slate-500 bg-white border border-slate-200 p-1 px-2 rounded-lg">
-                Size: <span className="font-mono text-slate-800 font-semibold">{(file ? file.size / 1024 : 0).toFixed(1)} KB</span>
+              <span className="text-xs text-[#6B6459] bg-white border border-[#E4E0D8] p-1 px-2 rounded-lg">
+                Size: <span className="font-mono text-[#171B26] font-semibold">{(file ? file.size / 1024 : 0).toFixed(1)} KB</span>
               </span>
               {resultDetails && (
                 <>
-                  <span className="text-xs text-indigo-700 bg-indigo-50/70 border border-indigo-100 p-1 px-2 rounded-lg font-semibold flex items-center gap-1">
-                    <Zap size={10} className="fill-indigo-300" />
+                  <span className="text-xs text-[#2F6F5E] bg-[#FAF8F3] border border-[#E4E0D8] p-1 px-2 rounded-lg font-semibold flex items-center gap-1">
+                    <Zap size={10} className="fill-[#2F6F5E]" />
                     Model used: {resultDetails.modeUsed === "ai" ? "Local AI" : "Classic Core Engine"}
                   </span>
-                  <span className="text-xs text-slate-500 bg-white border border-slate-200 p-1 px-2 rounded-lg">
-                    Speed: <span className="font-mono text-slate-800 font-semibold">{resultDetails.durationMs}ms</span>
+                  <span className="text-xs text-[#6B6459] bg-white border border-[#E4E0D8] p-1 px-2 rounded-lg">
+                    Speed: <span className="font-mono text-[#171B26] font-semibold">{resultDetails.durationMs}ms</span>
                   </span>
                 </>
               )}
@@ -475,23 +604,23 @@ console.log("Welcome to ConvertOneAI!");
             {/* Left Pane: Interactive Source code with copy/download */}
             <div className="flex flex-col gap-3 text-left">
               <div className="flex justify-between items-center select-none">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider font-sans">
+                <h3 className="text-xs font-mono font-semibold text-[#6B6459] uppercase tracking-wider">
                   Formatted Source Editor
                 </h3>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleInstantCopy}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50/50 rounded-lg border border-slate-200 hover:border-indigo-100 transition-all font-medium cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#6B6459] hover:text-[#2F6F5E] bg-[#FAF8F3] hover:bg-[#F6F4EE] rounded-lg border border-[#E4E0D8] hover:border-[#2F6F5E] transition-all font-medium cursor-pointer"
                     id="btn-source-copy"
                   >
-                    {copiedSuccess ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                    {copiedSuccess ? <Check size={12} className="text-[#2F6F5E]" /> : <Copy size={12} />}
                     <span>{copiedSuccess ? "Copied" : "Copy Source"}</span>
                   </button>
 
                   <button
                     onClick={handleInstantDownload}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all font-semibold cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#F6F4EE] bg-[#2F6F5E] hover:bg-[#275F50] rounded-lg shadow-xs transition-all font-semibold cursor-pointer"
                     id="btn-source-download"
                   >
                     <Download size={12} />
@@ -504,7 +633,7 @@ console.log("Welcome to ConvertOneAI!");
                 <textarea
                   value={editedMarkdown}
                   onChange={(e) => setEditedMarkdown(e.target.value)}
-                  className="w-full h-[460px] bg-slate-900 text-indigo-100 p-5 rounded-xl border border-slate-950 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none overflow-y-auto"
+                  className="w-full h-[460px] bg-[#171B26] text-[#F6F4EE] p-5 rounded-xl border border-[#171B26] font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#2F6F5E] resize-none overflow-y-auto"
                   placeholder="Raw Markdown source output appears here. Make edits if needed..."
                   id="raw-editor-workspace"
                 />
@@ -517,7 +646,7 @@ console.log("Welcome to ConvertOneAI!");
                       setEditedMarkdown("");
                       setResultDetails(null);
                     }}
-                    className="text-[11px] font-bold text-slate-400 hover:text-rose-500 bg-slate-800 border border-slate-700 hover:border-rose-950 p-1 px-2.5 rounded-lg transition-colors cursor-pointer"
+                    className="text-[11px] font-mono font-bold text-[#6B6459] hover:text-rose-400 bg-[#171B26] border border-[#6B6459]/40 hover:border-rose-500 p-1 px-2.5 rounded-lg transition-colors cursor-pointer"
                   >
                     Convert Another File
                   </button>
@@ -534,21 +663,21 @@ console.log("Welcome to ConvertOneAI!");
         <AIWorkspace markdown={editedMarkdown} fileName={file?.name} />
         </>
       )}
-      {/* Featured Top 5 AI Tools Capabilities Section (Uncluttered Layout) */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-6 text-left">
+      {/* Featured Top 5 AI Tools Capabilities Section */}
+      <section className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-8 shadow-xs space-y-6 text-left">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
           <div className="space-y-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Platform Capabilities</span>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#2F6F5E] block">Platform Capabilities</span>
+            <h2 className="text-2xl font-bold font-display text-[#171B26] tracking-tight">
               Featured AI Document Intelligence Tools
             </h2>
-            <p className="text-slate-500 text-xs md:text-sm font-sans">
+            <p className="text-[#6B6459] text-xs md:text-sm font-sans">
               Top document preparation, cleaning, summarizing, prompt engineering, and dataset export capabilities.
             </p>
           </div>
           <button
             onClick={() => setViewMode("tools")}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#2F6F5E] hover:bg-[#275F50] text-[#F6F4EE] text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
           >
             <span>View All AI Tools</span>
             <ArrowRight size={14} />
@@ -560,26 +689,26 @@ console.log("Welcome to ConvertOneAI!");
             <div
               key={tool.id}
               onClick={() => setViewMode("tools")}
-              className="p-4 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all flex flex-col justify-between group cursor-pointer"
+              className="p-4 bg-[#F6F4EE] hover:bg-white border border-[#E4E0D8] hover:border-[#2F6F5E] rounded-xl transition-all flex flex-col justify-between group cursor-pointer"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-2xs group-hover:border-indigo-200">
-                    <Zap size={16} className="text-indigo-600" />
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-[#E4E0D8] group-hover:border-[#2F6F5E] transition-colors">
+                    <Zap size={16} className="text-[#2F6F5E]" />
                   </div>
-                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                  <span className="text-[10px] font-mono font-bold text-[#2F6F5E] bg-[#FAF8F3] px-2 py-0.5 rounded border border-[#2F6F5E]/30">
                     Featured
                   </span>
                 </div>
-                <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                <h3 className="text-xs font-bold text-[#171B26] group-hover:text-[#2F6F5E] transition-colors">
                   {tool.title}
                 </h3>
-                <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                <p className="text-[11px] text-[#6B6459] line-clamp-2 leading-relaxed">
                   {tool.shortDescription}
                 </p>
               </div>
 
-              <div className="mt-3 pt-2 text-[11px] font-bold text-indigo-600 flex items-center gap-1">
+              <div className="mt-3 pt-2 text-[11px] font-mono font-bold text-[#2F6F5E] flex items-center gap-1">
                 <span>Explore Tool</span>
                 <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
               </div>
@@ -588,71 +717,71 @@ console.log("Welcome to ConvertOneAI!");
         </div>
       </section>
 
-      {/* Core Keyword-Optimized SEO Features (Speed, Privacy, Output Quality) */}
+      {/* Core Keyword-Optimized Features */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-4 hover:border-indigo-100 transition-all text-left">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+        <div className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-8 shadow-xs space-y-4 hover:border-[#2F6F5E] transition-all text-left">
+          <div className="w-10 h-10 bg-[#F6F4EE] text-[#2F6F5E] rounded-xl flex items-center justify-center border border-[#E4E0D8]">
             <Zap size={20} className="stroke-[2]" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 font-sans tracking-tight">
+          <h3 className="text-lg font-bold font-display text-[#171B26] tracking-tight">
             Conversions compile in milliseconds
           </h3>
-          <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-sans">
+          <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed font-sans">
             Stop waiting for slow servers or processing queues. Our high-performance online document converter parses heavy documents in under a second. By compiling text structures entirely in local RAM, you get instant, high-speed Word to Markdown and PDF to MD online translations. This makes us the premier free PDF to MD converter for developers and content creators.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-4 hover:border-indigo-100 transition-all text-left">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+        <div className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-8 shadow-xs space-y-4 hover:border-[#2F6F5E] transition-all text-left">
+          <div className="w-10 h-10 bg-[#F6F4EE] text-[#2F6F5E] rounded-xl flex items-center justify-center border border-[#E4E0D8]">
             <ShieldCheck size={20} className="stroke-[2]" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 font-sans tracking-tight">
+          <h3 className="text-lg font-bold font-display text-[#171B26] tracking-tight">
             Security backed by immediate data purging
           </h3>
-          <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-sans">
+          <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed font-sans">
             Your digital trust remains our highest priority. We focus on secure document processing by operating a zero-storage architecture. All uploaded PDF or Word files exist only in volatile server memory during the active conversion and get instantly purged the second compilation completes. No files, metadata, or logs are ever saved.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-4 hover:border-indigo-100 transition-all text-left">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+        <div className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-8 shadow-xs space-y-4 hover:border-[#2F6F5E] transition-all text-left">
+          <div className="w-10 h-10 bg-[#F6F4EE] text-[#2F6F5E] rounded-xl flex items-center justify-center border border-[#E4E0D8]">
             <FileText size={20} className="stroke-[2]" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 font-sans tracking-tight">
+          <h3 className="text-lg font-bold font-display text-[#171B26] tracking-tight">
             Clean, developer-ready Markdown syntax
           </h3>
-          <p className="text-slate-600 text-xs md:text-sm leading-relaxed font-sans">
+          <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed font-sans">
             Avoid messy, uncooperative formatting and broken layouts. Our specialized compiler extracts nested lists, complex bold/italic typography, and code blocks perfectly. Built with the spirit of an open-source markdown tool, we map tables into clean Markdown code grids, ensuring your output is ready for documentation hubs, blogs, and static sites instantly.
           </p>
         </div>
       </section>
 
-      {/* General Educational Guide sections (Structured Syntax Guide) */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
+      {/* Markdown Cheatsheet Section */}
+      <section className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-8 shadow-xs">
         <div className="max-w-3xl mx-auto text-center space-y-4 mb-10 select-none">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">Structured Syntax Guide</span>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight font-sans">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#2F6F5E] block">Structured Syntax Guide</span>
+          <h2 className="text-2xl md:text-3xl font-bold font-display text-[#171B26] tracking-tight">
             The Complete Markdown Cheat-Sheet
           </h2>
-          <p className="text-slate-500 text-sm font-sans max-w-xl mx-auto leading-relaxed">
+          <p className="text-[#6B6459] text-sm font-sans max-w-xl mx-auto leading-relaxed">
             Understand core text syntax identifiers for documentation, notes, and repository Readme outlines.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
           {GUIDE_SECTIONS.slice(0, 3).map((guide, idx) => (
-            <div key={idx} className="border border-gray-150 rounded-xl p-5 hover:border-indigo-100 transition-colors flex flex-col justify-between">
+            <div key={idx} className="border border-[#E4E0D8] rounded-xl p-5 hover:border-[#2F6F5E] transition-colors flex flex-col justify-between bg-[#F6F4EE]">
               <div>
-                <h3 className="font-bold text-gray-900 text-sm font-sans tracking-wide mb-1.5 flex items-center gap-1.5">
-                  <BookOpen size={15} className="text-indigo-600" />
+                <h3 className="font-bold text-[#171B26] text-sm font-sans tracking-wide mb-1.5 flex items-center gap-1.5">
+                  <BookOpen size={15} className="text-[#2F6F5E]" />
                   {guide.title}
                 </h3>
-                <p className="text-gray-400 text-xs leading-normal font-sans mb-4">{guide.description}</p>
+                <p className="text-[#6B6459] text-xs leading-normal font-sans mb-4">{guide.description}</p>
               </div>
 
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block pb-1.5">Symbol Syntax</span>
-                <pre className="font-mono text-xs text-rose-600 overflow-x-auto truncate">{guide.syntax}</pre>
+              <div className="bg-[#FAF8F3] p-3 rounded-lg border border-[#E4E0D8]">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B6459] block pb-1.5">Symbol Syntax</span>
+                <pre className="font-mono text-xs text-[#2F6F5E] overflow-x-auto truncate">{guide.syntax}</pre>
               </div>
             </div>
           ))}
@@ -661,7 +790,7 @@ console.log("Welcome to ConvertOneAI!");
         <div className="flex justify-center mt-8 select-none">
           <button
             onClick={() => setViewMode("guide")}
-            className="inline-flex items-center gap-1 px-4 py-2.5 bg-gray-50 hover:bg-indigo-50/50 text-xs font-bold text-indigo-700 hover:text-indigo-800 rounded-lg border border-gray-200 hover:border-indigo-100 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-4 py-2.5 bg-[#FAF8F3] hover:bg-[#F6F4EE] text-xs font-mono font-bold text-[#2F6F5E] hover:text-[#275F50] rounded-xl border border-[#E4E0D8] hover:border-[#2F6F5E] transition-colors cursor-pointer"
           >
             <span>Explore Markdown Syntaxes</span>
             <ArrowRight size={13} />
@@ -669,73 +798,72 @@ console.log("Welcome to ConvertOneAI!");
         </div>
       </section>
 
-      {/* On-Page Home FAQ Section addressing long-tail searches (Self-contained and secure Accordion style) */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-10 shadow-sm space-y-8">
+      {/* FAQ Section */}
+      <section className="bg-[#FAF8F3] rounded-xl border border-[#E4E0D8] p-6 md:p-10 shadow-xs space-y-8">
         <div className="text-center max-w-xl mx-auto space-y-3 select-none">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">Expert Insights</span>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#2F6F5E] block">Expert Insights</span>
+          <h2 className="text-2xl md:text-3xl font-bold font-display text-[#171B26] tracking-tight">
             Common conversion questions answered
           </h2>
-          <p className="text-slate-500 text-xs md:text-sm leading-relaxed font-sans">
+          <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed font-sans">
             Get answers to targeted questions regarding our free Word to Markdown converter and secure document rendering engines.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-          <div className="space-y-2 p-5 bg-slate-50 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-colors">
-            <h3 className="font-bold text-slate-900 text-sm md:text-base flex items-start gap-2">
-              <HelpCircle size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div className="space-y-2 p-5 bg-[#F6F4EE] border border-[#E4E0D8] rounded-xl hover:bg-white transition-colors">
+            <h3 className="font-bold text-[#171B26] text-sm md:text-base flex items-start gap-2">
+              <HelpCircle size={18} className="text-[#2F6F5E] mt-0.5 shrink-0" />
               <span>How to convert PDF to Markdown?</span>
             </h3>
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
+            <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
               To convert a PDF to Markdown, simply drag and drop your file into the ConvertOneAI uploader zone above. The system automatically processes the document's typography, maps headers, and extracts aligned text into clean Markdown. You can edit the output directly in our live editor or download it immediately.
             </p>
           </div>
 
-          <div className="space-y-2 p-5 bg-slate-50 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-colors">
-            <h3 className="font-bold text-slate-900 text-sm md:text-base flex items-start gap-2">
-              <HelpCircle size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div className="space-y-2 p-5 bg-[#F6F4EE] border border-[#E4E0D8] rounded-xl hover:bg-white transition-colors">
+            <h3 className="font-bold text-[#171B26] text-sm md:text-base flex items-start gap-2">
+              <HelpCircle size={18} className="text-[#2F6F5E] mt-0.5 shrink-0" />
               <span>Is ConvertOneAI free to use?</span>
             </h3>
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
+            <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
               Yes, ConvertOneAI is entirely free. You can convert PDF to Markdown and use our Word to Markdown converter without paying any subscription fees, answering captchas, or creating accounts. We believe developer-grade plain-text formatting tools should be accessible to everyone.
             </p>
           </div>
 
-          <div className="space-y-2 p-5 bg-slate-50 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-colors">
-            <h3 className="font-bold text-slate-900 text-sm md:text-base flex items-start gap-2">
-              <HelpCircle size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div className="space-y-2 p-5 bg-[#F6F4EE] border border-[#E4E0D8] rounded-xl hover:bg-white transition-colors">
+            <h3 className="font-bold text-[#171B26] text-sm md:text-base flex items-start gap-2">
+              <HelpCircle size={18} className="text-[#2F6F5E] mt-0.5 shrink-0" />
               <span>What Markdown flavor does it output?</span>
             </h3>
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
+            <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
               Our compiler outputs highly standard, compliant CommonMark and GitHub Flavored Markdown (GFM). This guarantees that your converted code blocks, custom nested tables, headers, and bullet points render perfectly in Jekyll, Hugo, Astro, Obsidian, Notion, GitHub wikis, or static documentation sites.
             </p>
           </div>
 
-          <div className="space-y-2 p-5 bg-slate-50 border border-slate-150 rounded-xl hover:bg-slate-50/50 transition-colors">
-            <h3 className="font-bold text-slate-900 text-sm md:text-base flex items-start gap-2">
-              <HelpCircle size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div className="space-y-2 p-5 bg-[#F6F4EE] border border-[#E4E0D8] rounded-xl hover:bg-white transition-colors">
+            <h3 className="font-bold text-[#171B26] text-sm md:text-base flex items-start gap-2">
+              <HelpCircle size={18} className="text-[#2F6F5E] mt-0.5 shrink-0" />
               <span>Does ConvertOneAI support complex tables?</span>
             </h3>
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
+            <p className="text-[#6B6459] text-xs md:text-sm leading-relaxed pl-6.5 font-sans">
               Scheduling table translations can be messy. ConvertOneAI excels at converting complex tables and structural grids. Instead of rendering tables as unstructured text, we parse cells into properly aligned GFM markdown pipe tables so your tabular data is immediately usable in any editor.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Quick trust metrics signals section */}
-      <section className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-8 md:p-12 text-center relative overflow-hidden select-none">
-        <div className="absolute inset-0 bg-grid-white/[0.03] pointer-events-none" />
+      {/* Trust metrics — Structured Ink dark surface */}
+      <section className="bg-[#171B26] text-[#F6F4EE] rounded-xl border border-[#2F6F5E] p-8 md:p-12 text-center relative overflow-hidden select-none">
         <div className="max-w-2xl mx-auto space-y-5 relative z-10">
-          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight font-sans">Designed for Writers, Engineered for Developers</h2>
-          <p className="text-indigo-200 text-sm leading-relaxed font-sans max-w-lg mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold font-display tracking-tight">Designed for Writers, Engineered for Developers</h2>
+          <p className="text-[#F6F4EE]/70 text-sm leading-relaxed font-sans max-w-lg mx-auto">
             By processing raw parsing inside on-fly memory logs, ConvertOneAI establishes ultimate trust. Your credentials are fine, files are purged instantly, with no accounts required.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-2 font-sans font-semibold text-xs text-indigo-100">
-            <span className="flex items-center gap-1 bg-white/5 p-1 px-2.5 rounded-full"><Lock size={12} /> SSL Encrypted</span>
-            <span className="flex items-center gap-1 bg-white/5 p-1 px-2.5 rounded-full"><ShieldCheck size={12} /> Clean & Unchecked</span>
-            <span className="flex items-center gap-1 bg-white/5 p-1 px-2.5 rounded-full"><Smartphone size={12} /> Mobile Adaptive</span>
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-2 font-mono font-semibold text-xs text-[#F6F4EE]/80">
+            <span className="flex items-center gap-1 bg-[#F6F4EE]/5 border border-[#2F6F5E]/30 p-1 px-2.5 rounded-full"><Lock size={12} /> SSL Encrypted</span>
+            <span className="flex items-center gap-1 bg-[#F6F4EE]/5 border border-[#2F6F5E]/30 p-1 px-2.5 rounded-full"><ShieldCheck size={12} /> Zero-Storage Active</span>
+            <span className="flex items-center gap-1 bg-[#F6F4EE]/5 border border-[#2F6F5E]/30 p-1 px-2.5 rounded-full"><Smartphone size={12} /> Mobile Adaptive</span>
           </div>
         </div>
       </section>

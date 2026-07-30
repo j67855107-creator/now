@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AlertCircle, Lock, Sparkles, CheckCircle2 } from "lucide-react";
-import { ViewMode, BlogPost } from "./types";
+import { ViewMode, BlogPost, DashboardStats } from "./types";
 import AboutView from "./components/AboutView";
 import FAQView from "./components/FAQView";
 import GuideView from "./components/GuideView";
@@ -13,7 +13,6 @@ import ConversionUI from "./components/ConversionUI";
 import ToolsView from "./components/ToolsView";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
-import { DashboardStats } from "./types";
 import { API_BASE } from "./api";
 import { ToolPlugin } from "./ai/registries/ToolPlugin";
 import { toolsRegistry } from "./ai/registries/toolsRegistry";
@@ -96,13 +95,12 @@ export default function App() {
     }
   };
 
+  const [dragActive, setDragActive] = useState(false);
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
     else if (e.type === "dragleave") setDragActive(false);
   };
-
-  const [dragActive, setDragActive] = useState(false);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragActive(false);
@@ -182,25 +180,26 @@ export default function App() {
     triggerAlert("info", "Logged out of admin terminal successfully.");
   };
 
-  const [convertMode] = useState<"classic" | "ai">("classic");
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans antialiased">
+    <div className="min-h-screen bg-[#F6F4EE] text-[#171B26] flex flex-col justify-between font-sans antialiased">
       <Header viewMode={viewMode} setViewMode={setViewMode} selectPreconfigMode={selectPreconfigMode} triggerAlert={triggerAlert} />
 
       {alertMessage && (
-        <div className="max-w-7xl mx-auto px-8 mt-4 w-full select-none">
-          <div className={"p-4 rounded-xl border flex items-start gap-3 shadow-sm " + (alertMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-150" : alertMessage.type === "error" ? "bg-rose-50 text-rose-800 border-rose-150" : "bg-blue-50 text-blue-800 border-blue-150")}>
-            <AlertCircle size={18} className="shrink-0 mt-0.5" />
-            <div className="text-sm font-medium">{alertMessage.text}</div>
+        <div className="max-w-7xl mx-auto px-6 mt-4 w-full select-none">
+          <div className={"p-3.5 rounded-xl border flex items-start gap-3 shadow-xs text-xs font-mono font-medium " + (alertMessage.type === "success" ? "bg-[#FAF8F3] text-[#2F6F5E] border-[#2F6F5E]" : alertMessage.type === "error" ? "bg-rose-50 text-[#EF4444] border-rose-200" : "bg-[#FAF8F3] text-[#2F6F5E] border-[#E4E0D8]")}>
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div>{alertMessage.text}</div>
           </div>
         </div>
       )}
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
         {(viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf") && (
           <ConversionUI viewMode={viewMode} setViewMode={setViewMode} file={file} setFile={setFile} converting={converting} setConverting={setConverting} conversionResult={conversionResult} setConversionResult={setConversionResult} editedMarkdown={editedMarkdown} setEditedMarkdown={setEditedMarkdown} resultDetails={resultDetails} setResultDetails={setResultDetails} runConversion={runConversion} triggerAlert={triggerAlert} selectPreconfigMode={selectPreconfigMode} handleFileChange={handleFileChange} handleDrag={handleDrag} handleDrop={handleDrop} fileInputRef={fileInputRef} loadingStep={loadingStep} />
         )}
+
+        {viewMode === "admin-login" && <AdminLogin onLoginSuccess={handleAdminLogin} onBack={() => setViewMode("home")} />}
+        {viewMode === "admin-dashboard" && <AdminDashboard token={adminToken || ""} onLogout={handleAdminLogout} />}
 
         {viewMode === "tools" && (
           <ToolsView
@@ -218,23 +217,6 @@ export default function App() {
           />
         )}
 
-        {viewMode === "analytics" && !adminToken && (
-          <div className="py-12">
-            <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-150 shadow-sm p-8 text-center space-y-6 animate-fadeIn">
-              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto"><Lock size={28} className="stroke-[1.5]" /></div>
-              <h2 className="text-xl font-extrabold text-slate-800">Admin Security Gate</h2>
-              <p className="text-xs text-slate-500">Access restricted to authenticated administrators only.</p>
-              <button onClick={() => setViewMode("admin-login")} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-all cursor-pointer">Authenticate as Admin</button>
-            </div>
-          </div>
-        )}
-
-        {viewMode === "analytics" && adminToken && <AdminDashboard token={adminToken} onLogout={handleAdminLogout} />}
-        {viewMode === "admin-login" && <AdminLogin onLoginSuccess={handleAdminLogin} onBack={() => setViewMode("home")} />}
-        {viewMode === "admin-dashboard" && (adminToken ? <AdminDashboard token={adminToken} onLogout={handleAdminLogout} /> : (
-          <div className="py-12 text-center"><p className="text-slate-500">Session expired.</p><button onClick={() => setViewMode("admin-login")} className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold cursor-pointer">Go to Login</button></div>
-        ))}
-
         {viewMode === "guide" && <GuideView />}
         {viewMode === "blog" && <BlogView readingBlog={readingBlog} setReadingBlog={setReadingBlog} setViewMode={setViewMode} />}
         {viewMode === "faq" && <FAQView />}
@@ -244,89 +226,75 @@ export default function App() {
         {viewMode === "terms" && <TermsView />}
       </main>
 
-      <footer className="bg-slate-900 text-gray-400 border-t border-slate-950 py-10 select-none font-sans text-xs">
+      {/* FOOTER: Structured Ink theme with signature --verified top border */}
+      <footer className="bg-[#171B26] text-[#F6F4EE] border-t-2 border-[#2F6F5E] py-12 select-none text-xs font-sans">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Column 1 — Brand */}
-          <div className="space-y-3.5 text-left">
+          <div className="space-y-3 text-left">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setViewMode("home")}>
-              <span className="font-extrabold text-white text-base tracking-tight">ConvertOne<span className="text-indigo-400">AI</span></span>
+              <span className="font-display font-bold text-[#F6F4EE] text-base tracking-tight">ConvertOne<span className="text-[#2F6F5E]">AI</span></span>
             </div>
-            <p className="leading-relaxed text-gray-400">
-              Enterprise AI Document Intelligence Platform. Parse, clean, chunk, and structure documents for LLMs, RAG pipelines, and fine-tuning datasets.
+            <p className="leading-relaxed text-[#F6F4EE]/70">
+              Enterprise AI Document Platform. Convert, clean, chunk, and structure documents for LLMs, RAG pipelines, and AI datasets.
             </p>
-            <p className="text-[11px] font-semibold text-indigo-400">
-              Built for AI Document Processing.
+            <p className="text-[11px] font-mono text-[#2F6F5E]">
+              // unified document intelligence for ai
             </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-300 bg-indigo-950/80 border border-indigo-800/50 px-2 py-0.5 rounded-md">
-                <Sparkles size={10} className="text-indigo-400" /> AI Ready
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-300 bg-emerald-950/80 border border-emerald-800/50 px-2 py-0.5 rounded-md">
-                <Lock size={10} className="text-emerald-400" /> Secure
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-300 bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 rounded-md">
-                <CheckCircle2 size={10} className="text-slate-400" /> No Registration
-              </span>
-            </div>
           </div>
 
-          {/* Column 2 — Popular AI Tools */}
           <div className="text-left space-y-2.5">
-            <span className="font-bold text-white text-[11px] uppercase tracking-wider block">Popular AI Tools</span>
-            <ul className="space-y-1.5">
-              <li><button onClick={() => selectPreconfigMode("pdf")} className="hover:text-white transition-colors text-left cursor-pointer">PDF to Markdown</button></li>
-              <li><button onClick={() => selectPreconfigMode("docx")} className="hover:text-white transition-colors text-left cursor-pointer">Word to Markdown</button></li>
-              <li><button onClick={() => handleToolClick("html-to-markdown")} className="hover:text-white transition-colors text-left cursor-pointer">HTML to Markdown</button></li>
-              <li><button onClick={() => handleToolClick("image-ocr")} className="hover:text-white transition-colors text-left cursor-pointer">Image OCR</button></li>
-              <li><button onClick={() => handleToolClick("ai-summary")} className="hover:text-white transition-colors text-left cursor-pointer">AI Summary</button></li>
-              <li><button onClick={() => handleToolClick("prompt-generator")} className="hover:text-white transition-colors text-left cursor-pointer">Prompt Generator</button></li>
-              <li><button onClick={() => handleToolClick("prepare-for-ai")} className="hover:text-white transition-colors text-left cursor-pointer">Prepare for AI</button></li>
-              <li className="pt-1"><button onClick={() => setViewMode("tools")} className="hover:text-white text-indigo-400 font-semibold transition-colors flex items-center gap-1 text-left cursor-pointer">View All AI Tools →</button></li>
+            <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Popular Tools</span>
+            <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
+              <li><button onClick={() => selectPreconfigMode("pdf")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">PDF to Markdown</button></li>
+              <li><button onClick={() => selectPreconfigMode("docx")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Word to Markdown</button></li>
+              <li><button onClick={() => handleToolClick("html-to-markdown")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">HTML to Markdown</button></li>
+              <li><button onClick={() => handleToolClick("image-ocr")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Image OCR</button></li>
+              <li><button onClick={() => handleToolClick("ai-summary")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">AI Document Summary</button></li>
+              <li><button onClick={() => handleToolClick("prompt-generator")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prompt Generator</button></li>
+              <li><button onClick={() => handleToolClick("prepare-for-ai")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prepare for AI (RAG)</button></li>
+              <li className="pt-1"><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] text-[#2F6F5E] font-mono font-medium transition-colors flex items-center gap-1 text-left cursor-pointer">View All Tools →</button></li>
             </ul>
           </div>
 
-          {/* Column 3 — Resources */}
           <div className="text-left space-y-2.5">
-            <span className="font-bold text-white text-[11px] uppercase tracking-wider block">Resources</span>
-            <ul className="space-y-1.5">
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-white transition-colors text-left cursor-pointer">Markdown Guide</button></li>
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-white transition-colors text-left cursor-pointer">RAG Guide</button></li>
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-white transition-colors text-left cursor-pointer">JSONL Guide</button></li>
-              <li><button onClick={() => setViewMode("blog")} className="hover:text-white transition-colors text-left cursor-pointer">Blog</button></li>
-              <li><button onClick={() => setViewMode("faq")} className="hover:text-white transition-colors text-left cursor-pointer">FAQ</button></li>
+            <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Resources</span>
+            <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
+              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Getting Started</button></li>
+              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Markdown Guide</button></li>
+              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">RAG Guide</button></li>
+              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">JSONL Guide</button></li>
+              <li><button onClick={() => setViewMode("blog")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Blog</button></li>
+              <li><button onClick={() => setViewMode("faq")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">FAQ</button></li>
             </ul>
           </div>
 
-          {/* Column 4 — Company */}
           <div className="text-left space-y-2.5">
-            <span className="font-bold text-white text-[11px] uppercase tracking-wider block">Company</span>
-            <ul className="space-y-1.5">
-              <li><button onClick={() => setViewMode("about")} className="hover:text-white transition-colors text-left cursor-pointer">About</button></li>
-              <li><button onClick={() => setViewMode("privacy")} className="hover:text-white transition-colors text-left cursor-pointer">Privacy Policy</button></li>
-              <li><button onClick={() => setViewMode("terms")} className="hover:text-white transition-colors text-left cursor-pointer">Terms of Service</button></li>
-              <li><button onClick={() => setViewMode("contact")} className="hover:text-white transition-colors text-left cursor-pointer">Contact</button></li>
+            <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Company</span>
+            <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
+              <li><button onClick={() => setViewMode("about")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">About</button></li>
+              <li><button onClick={() => setViewMode("privacy")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Privacy Policy</button></li>
+              <li><button onClick={() => setViewMode("terms")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Terms of Service</button></li>
+              <li><button onClick={() => setViewMode("contact")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Contact Support</button></li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="max-w-7xl mx-auto px-6 pt-8 mt-8 border-t border-slate-800/65 flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-500">
+        <div className="max-w-7xl mx-auto px-6 pt-8 mt-8 border-t border-[#6B6459]/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-[#F6F4EE]/50">
           <span>&copy; 2026 ConvertOneAI, Inc. All rights reserved.</span>
-          <div className="flex flex-wrap items-center gap-3 text-[11px]">
-            <span className="text-gray-400 font-medium">24+ Supported Formats</span>
-            <span className="text-slate-700">•</span>
-            <span className="text-gray-400 font-medium">17+ AI Tools</span>
-            <span className="text-slate-700">•</span>
-            <span className="text-indigo-400 font-semibold">Powered by ConvertOneAI</span>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono">
+            <span className="text-[#F6F4EE]/70">24+ Formats</span>
+            <span>•</span>
+            <span className="text-[#F6F4EE]/70">17+ AI Tools</span>
+            <span>•</span>
+            <span className="text-[#2F6F5E] font-semibold">AI Document Platform</span>
           </div>
         </div>
       </footer>
 
       {!cookieDismissed && (
-        <div className="fixed bottom-0 inset-x-0 w-full bg-slate-900 border-t border-slate-800 text-white z-50 p-4 shadow-2xl">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 font-sans text-sm">
-            <p className="text-slate-300">ConvertOneAI uses essential cookies.<span className="ml-2 underline cursor-pointer text-indigo-400 hover:text-indigo-300" onClick={() => { setViewMode("privacy"); setCookieDismissed(true); window.scrollTo(0, 0); }}>Privacy Policy</span></p>
-            <button onClick={() => setCookieDismissed(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-6 rounded-md shadow cursor-pointer">Accept</button>
+        <div className="fixed bottom-0 inset-x-0 w-full bg-[#171B26] text-[#F6F4EE] z-50 p-4 shadow-xl border-t border-[#2F6F5E]">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 font-sans text-xs">
+            <p className="text-[#F6F4EE]/80">ConvertOneAI uses essential cookies.<span className="ml-2 underline cursor-pointer text-[#2F6F5E] hover:text-[#F6F4EE]" onClick={() => { setViewMode("privacy"); setCookieDismissed(true); window.scrollTo(0, 0); }}>Privacy Policy</span></p>
+            <button onClick={() => setCookieDismissed(true)} className="bg-[#2F6F5E] hover:bg-[#275F50] text-[#F6F4EE] font-medium py-1.5 px-5 rounded-xl shadow-xs cursor-pointer">Accept</button>
           </div>
         </div>
       )}
@@ -334,4 +302,3 @@ export default function App() {
     </div>
   );
 }
-
