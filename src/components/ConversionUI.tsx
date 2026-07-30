@@ -334,9 +334,16 @@ console.log("Welcome to ConvertOneAI!");
                 percent={progressPercent}
                 eta={progressEta}
                 step={progressStep}
+                file={file}
+                onRetry={runConversion}
                 onCancel={() => {
                   setConverting(false);
                   setProgressStage("cancelled");
+                }}
+                onConvertAnother={() => {
+                  setFile(null);
+                  setConverting(false);
+                  setProgressStage("idle");
                 }}
               />
             )}
