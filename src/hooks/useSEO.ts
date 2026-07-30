@@ -8,8 +8,8 @@ interface PageMeta {
 
 const META_MAP: Record<ViewMode, PageMeta> = {
   home: {
-    title: "ConvertOneAI — AI Document Platform: PDF, Word & 24+ Formats to Markdown",
-    description: "Convert PDF, Word (DOCX), HTML, images and 24+ formats to clean Markdown. Clean layout noise, chunk text, and prepare documents for ChatGPT, Claude, Gemini & RAG pipelines.",
+    title: "ConvertOneAI — PDF & Word to Markdown AI Converter",
+    description: "Convert PDF, Word, HTML, and images to clean Markdown for LLMs & RAG pipelines. Clean layout noise and format text in seconds. Try ConvertOneAI free today!",
   },
   "convert-word": {
     title: "Word to Markdown Converter — Free DOCX to MD Online | ConvertOneAI",
