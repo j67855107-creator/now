@@ -3457,9 +3457,24 @@ var distPath = import_path.default.resolve(process.cwd(), "dist");
 var indexHtmlPath = import_path.default.resolve(distPath, "index.html");
 if (isProduction) {
   console.log(`[Server] Serving static files from: ${distPath}`);
-  app.use(import_express2.default.static(distPath));
+  app.use(
+    import_express2.default.static(distPath, {
+      maxAge: "1y",
+      immutable: true,
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      }
+    })
+  );
   console.log("[Server] SPA fallback registered");
-  app.get("*", (_req, res) => {
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/assets/") || /\.(js|css|json|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$/i.test(req.path)) {
+      return res.status(404).send("Asset not found");
+    }
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(indexHtmlPath);
   });
 } else {
@@ -3475,9 +3490,25 @@ if (isProduction) {
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
+  if (err.type === "request.aborted" || err.code === "ECONNABORTED" || req.aborted) {
+    console.warn(`[Server] Client aborted request stream (${req.method} ${req.path})`);
+    if (!res.headersSent) {
+      return res.status(400).json({ error: "Request aborted by client." });
+    }
+    return;
+  }
+  if (err.type === "entity.too.large" || err.status === 413) {
+    console.warn(`[Server] Payload size limit exceeded (${req.method} ${req.path})`);
+    if (!res.headersSent) {
+      return res.status(413).json({ error: "Payload exceeds size limit." });
+    }
+    return;
+  }
   console.error("[Server] Unhandled error:", err);
-  res.status(500).json({ error: "Internal Server Error" });
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+  }
 });
 function createApp() {
   return app;
@@ -3494,6 +3525,8 @@ async function startServer(port = PORT) {
     const srv = app.listen(runtimePort, () => {
       resolve(srv);
     });
+    srv.keepAliveTimeout = 65e3;
+    srv.headersTimeout = 66e3;
     srv.on("error", (err) => {
       if (err.code === "EADDRINUSE") {
         console.error(

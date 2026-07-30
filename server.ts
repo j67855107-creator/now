@@ -146,12 +146,27 @@ if (isProduction) {
   // PRODUCTION MODE: Express serves the built frontend from dist/
   // ---------------------------------------------------------------
   console.log(`[Server] Serving static files from: ${distPath}`);
-  app.use(express.static(distPath));
+  app.use(
+    express.static(distPath, {
+      maxAge: "1y",
+      immutable: true,
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    })
+  );
 
-  // SPA fallback: serve index.html for any non-API, non-asset request
-  // so React Router can handle client-side routes.
+  // SPA fallback: serve index.html for non-API and non-asset routes
   console.log("[Server] SPA fallback registered");
-  app.get("*", (_req: Request, res: Response) => {
+  app.get("*", (req: Request, res: Response) => {
+    // If request is for a missing static asset (/assets/* or extension), return 404 instead of index.html
+    if (req.path.startsWith("/assets/") || /\.(js|css|json|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$/i.test(req.path)) {
+      return res.status(404).send("Asset not found");
+    }
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(indexHtmlPath);
   });
 } else {
@@ -183,9 +198,29 @@ app.use((req: Request, res: Response) => {
 // Global Error Handler
 // ---------------------------------------------------------------------------
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  // Handle client disconnect / upload abort gracefully (e.g., user canceled upload or closed connection)
+  if (err.type === "request.aborted" || err.code === "ECONNABORTED" || req.aborted) {
+    console.warn(`[Server] Client aborted request stream (${req.method} ${req.path})`);
+    if (!res.headersSent) {
+      return res.status(400).json({ error: "Request aborted by client." });
+    }
+    return;
+  }
+
+  // Handle payload size limit error
+  if (err.type === "entity.too.large" || err.status === 413) {
+    console.warn(`[Server] Payload size limit exceeded (${req.method} ${req.path})`);
+    if (!res.headersSent) {
+      return res.status(413).json({ error: "Payload exceeds size limit." });
+    }
+    return;
+  }
+
   console.error("[Server] Unhandled error:", err);
-  res.status(500).json({ error: "Internal Server Error" });
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -217,6 +252,9 @@ export async function startServer(port = PORT) {
     const srv = app.listen(runtimePort, () => {
       resolve(srv);
     });
+    // Set keep-alive timeouts higher than Railway reverse proxy (60s) to prevent premature ECONNABORTED drops
+    srv.keepAliveTimeout = 65000;
+    srv.headersTimeout = 66000;
     srv.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
         console.error(
