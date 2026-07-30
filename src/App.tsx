@@ -16,12 +16,14 @@ import AdminDashboard from "./components/AdminDashboard";
 import { API_BASE } from "./api";
 import { ToolPlugin } from "./ai/registries/ToolPlugin";
 import { toolsRegistry } from "./ai/registries/toolsRegistry";
+import { useSEO } from "./hooks/useSEO";
 
 const VITE_API_PROTECTION_KEY = import.meta.env.VITE_API_PROTECTION_KEY || "WN3FBAF2GYF";
 const ADMIN_LOGIN_PATH = import.meta.env.VITE_ADMIN_LOGIN_PATH || "/admin-login-secret-path";
 
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("home");
+  useSEO(viewMode);
   const [selectedTool, setSelectedTool] = useState<ToolPlugin | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [converting, setConverting] = useState(false);
@@ -252,36 +254,36 @@ export default function App() {
           <div className="text-left space-y-2.5">
             <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Popular Tools</span>
             <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
-              <li><button onClick={() => selectPreconfigMode("pdf")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">PDF to Markdown</button></li>
-              <li><button onClick={() => selectPreconfigMode("docx")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Word to Markdown</button></li>
-              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">HTML to Markdown</button></li>
-              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Image OCR</button></li>
-              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">AI Document Summary</button></li>
-              <li><button onClick={() => handleToolClick("prompt-generator")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prompt Generator</button></li>
-              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prepare for AI (RAG)</button></li>
-              <li className="pt-1"><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] text-[#2F6F5E] font-mono font-medium transition-colors flex items-center gap-1 text-left cursor-pointer">View All Tools →</button></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); selectPreconfigMode("pdf"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">PDF to Markdown</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); selectPreconfigMode("docx"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Word to Markdown</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">HTML to Markdown</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Image OCR</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">AI Document Summary</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); handleToolClick("prompt-generator"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Prompt Generator</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Prepare for AI (RAG)</a></li>
+              <li className="pt-1"><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("tools"); }} className="hover:text-[#F6F4EE] text-[#2F6F5E] font-mono font-medium transition-colors flex items-center gap-1 text-left cursor-pointer">View All Tools →</a></li>
             </ul>
           </div>
 
           <div className="text-left space-y-2.5">
             <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Resources</span>
             <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Getting Started</button></li>
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Markdown Guide</button></li>
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">RAG Guide</button></li>
-              <li><button onClick={() => { sessionStorage.setItem("guide_tab", "jsonl"); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">JSONL Guide</button></li>
-              <li><button onClick={() => setViewMode("blog")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Blog</button></li>
-              <li><button onClick={() => setViewMode("faq")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">FAQ</button></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Getting Started</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Markdown Guide</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">RAG Guide</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("guide_tab", "jsonl"); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">JSONL Guide</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("blog"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Blog</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("faq"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">FAQ</a></li>
             </ul>
           </div>
 
           <div className="text-left space-y-2.5">
             <span className="font-mono font-bold text-[#F6F4EE] text-xs uppercase tracking-wider block">Company</span>
             <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
-              <li><button onClick={() => setViewMode("about")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">About</button></li>
-              <li><button onClick={() => setViewMode("privacy")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Privacy Policy</button></li>
-              <li><button onClick={() => setViewMode("terms")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Terms of Service</button></li>
-              <li><button onClick={() => setViewMode("contact")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Contact Support</button></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("about"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">About</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("privacy"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Privacy Policy</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("terms"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Terms of Service</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setViewMode("contact"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer inline-block">Contact Support</a></li>
             </ul>
           </div>
         </div>

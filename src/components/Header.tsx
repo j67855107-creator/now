@@ -33,18 +33,20 @@ export default function Header({
 
         {/* Nav — scrolls horizontally on mobile */}
         <nav className="flex items-center gap-3 lg:gap-5 text-xs font-medium flex-shrink-0">
-          <button
-            onClick={() => setViewMode("home")}
-            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("home"); }}
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap inline-block ${
               viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf" ? "active" : ""
             }`}
           >
             Converter
-          </button>
+          </a>
 
-          <button
-            onClick={() => setViewMode("tools")}
-            className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("tools"); }}
+            className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 whitespace-nowrap inline-flex ${
               viewMode === "tools" ? "active" : ""
             }`}
           >
@@ -52,53 +54,59 @@ export default function Header({
             <span className="text-[10px] bg-[#E4E0D8]/60 text-[#D98F3D] font-mono font-bold px-1.5 py-0.5 rounded border border-[#E4E0D8]">
               New
             </span>
-          </button>
+          </a>
 
-          <button
-            onClick={() => setViewMode("guide")}
-            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("guide"); }}
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap inline-block ${
               viewMode === "guide" ? "active" : ""
             }`}
           >
             Guides &amp; Docs
-          </button>
+          </a>
 
-          <button
-            onClick={() => setViewMode("blog")}
-            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("blog"); }}
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap inline-block ${
               viewMode === "blog" ? "active" : ""
             }`}
           >
             Blog
-          </button>
+          </a>
 
-          <button
-            onClick={() => setViewMode("faq")}
-            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("faq"); }}
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap inline-block ${
               viewMode === "faq" ? "active" : ""
             }`}
           >
             FAQ
-          </button>
+          </a>
 
-          <button
-            onClick={() => setViewMode("about")}
-            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setViewMode("about"); }}
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap inline-block ${
               viewMode === "about" ? "active" : ""
             }`}
           >
             About
-          </button>
+          </a>
 
-          <button
-            onClick={() => {
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
               setViewMode("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="ml-1 lg:ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-[11px] lg:text-xs font-semibold px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg lg:rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap flex-shrink-0"
+            className="ml-1 lg:ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-[11px] lg:text-xs font-semibold px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg lg:rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap flex-shrink-0 inline-block"
           >
             Get Started
-          </button>
+          </a>
         </nav>
       </div>
     </header>
