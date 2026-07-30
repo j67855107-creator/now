@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
 import { ViewMode } from "../types";
 
 interface HeaderProps {
@@ -12,10 +10,7 @@ interface HeaderProps {
 export default function Header({
   viewMode,
   setViewMode,
-  selectPreconfigMode,
 }: HeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <header className="sticky top-0 z-40 bg-[#F6F4EE]/90 backdrop-blur-md border-b border-[#E4E0D8] select-none">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -34,10 +29,10 @@ export default function Header({
           </span>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-5 text-xs font-medium">
+        <nav className="flex items-center gap-5 text-xs font-medium overflow-x-auto">
           <button
             onClick={() => setViewMode("home")}
-            className={`nav-link-item cursor-pointer py-1 ${
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
               viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf" ? "active" : ""
             }`}
           >
@@ -46,7 +41,7 @@ export default function Header({
 
           <button
             onClick={() => setViewMode("tools")}
-            className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 ${
+            className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 whitespace-nowrap ${
               viewMode === "tools" ? "active" : ""
             }`}
           >
@@ -58,7 +53,7 @@ export default function Header({
 
           <button
             onClick={() => setViewMode("guide")}
-            className={`nav-link-item cursor-pointer py-1 ${
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
               viewMode === "guide" ? "active" : ""
             }`}
           >
@@ -67,7 +62,7 @@ export default function Header({
 
           <button
             onClick={() => setViewMode("blog")}
-            className={`nav-link-item cursor-pointer py-1 ${
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
               viewMode === "blog" ? "active" : ""
             }`}
           >
@@ -76,7 +71,7 @@ export default function Header({
 
           <button
             onClick={() => setViewMode("faq")}
-            className={`nav-link-item cursor-pointer py-1 ${
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
               viewMode === "faq" ? "active" : ""
             }`}
           >
@@ -85,7 +80,7 @@ export default function Header({
 
           <button
             onClick={() => setViewMode("about")}
-            className={`nav-link-item cursor-pointer py-1 ${
+            className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
               viewMode === "about" ? "active" : ""
             }`}
           >
@@ -97,80 +92,12 @@ export default function Header({
               setViewMode("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
+            className="ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap"
           >
             Get Started
           </button>
         </nav>
-
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-[#6B6459] hover:text-[#171B26] hover:bg-[#E4E0D8]/40 rounded-lg cursor-pointer"
-          aria-label="Toggle Menu"
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
       </div>
-
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#F6F4EE] border-t border-[#E4E0D8] px-6 py-4 space-y-1.5 text-left">
-          <button
-            onClick={() => { setViewMode("home"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#171B26] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            Converter
-          </button>
-          <button
-            onClick={() => { setViewMode("tools"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#2F6F5E] bg-[#E4E0D8]/40 rounded-lg cursor-pointer flex items-center justify-between"
-          >
-            <span>Tools &amp; AI Directory</span>
-            <span className="text-[10px] font-mono font-bold bg-[#D98F3D] text-white px-2 py-0.5 rounded-full">New</span>
-          </button>
-          <button
-            onClick={() => { selectPreconfigMode("docx"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            Word to Markdown
-          </button>
-          <button
-            onClick={() => { selectPreconfigMode("pdf"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            PDF to Markdown
-          </button>
-          <button
-            onClick={() => { setViewMode("guide"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            Guides &amp; Docs
-          </button>
-          <button
-            onClick={() => { setViewMode("blog"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            Blog
-          </button>
-          <button
-            onClick={() => { setViewMode("faq"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            FAQ
-          </button>
-          <button
-            onClick={() => { setViewMode("about"); setMobileMenuOpen(false); }}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 rounded-lg cursor-pointer"
-          >
-            About
-          </button>
-          <button
-            onClick={() => { setViewMode("home"); setMobileMenuOpen(false); }}
-            className="block w-full text-center py-2.5 text-xs font-semibold text-[#F6F4EE] bg-[#171B26] hover:bg-[#2A3040] rounded-xl shadow-xs cursor-pointer"
-          >
-            Get Started
-          </button>
-        </div>
-      )}
     </header>
   );
 }
