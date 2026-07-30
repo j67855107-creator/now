@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { ViewMode } from "../types";
 
 interface HeaderProps {
@@ -10,45 +12,14 @@ interface HeaderProps {
 export default function Header({
   viewMode,
   setViewMode,
+  selectPreconfigMode,
 }: HeaderProps) {
-  const navLinks = [
-    {
-      label: "Converter",
-      active: viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf",
-      onClick: () => setViewMode("home"),
-    },
-    {
-      label: "Tools & AI",
-      badge: "New",
-      active: viewMode === "tools",
-      onClick: () => setViewMode("tools"),
-    },
-    {
-      label: "Guides & Docs",
-      active: viewMode === "guide",
-      onClick: () => setViewMode("guide"),
-    },
-    {
-      label: "Blog",
-      active: viewMode === "blog",
-      onClick: () => setViewMode("blog"),
-    },
-    {
-      label: "FAQ",
-      active: viewMode === "faq",
-      onClick: () => setViewMode("faq"),
-    },
-    {
-      label: "About",
-      active: viewMode === "about",
-      onClick: () => setViewMode("about"),
-    },
-  ];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-[#F6F4EE]/90 backdrop-blur-md border-b border-[#E4E0D8] select-none">
-      {/* ── Desktop: single row ── */}
-      <div className="hidden lg:flex max-w-7xl mx-auto px-6 h-16 items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+
         {/* Logo */}
         <div
           onClick={() => setViewMode("home")}
@@ -65,77 +36,168 @@ export default function Header({
           </span>
         </div>
 
-        {/* Nav */}
-        <nav className="flex items-center gap-5 text-xs font-medium">
-          {navLinks.map((link) => (
-            <button
-              key={link.label}
-              onClick={link.onClick}
-              className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 ${link.active ? "active" : ""}`}
-            >
-              <span>{link.label}</span>
-              {link.badge && (
-                <span className="text-[10px] bg-[#E4E0D8]/60 text-[#D98F3D] font-mono font-bold px-1.5 py-0.5 rounded border border-[#E4E0D8]">
-                  {link.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Desktop Nav */}
+        <nav className="hidden lg:flex items-center gap-5 text-xs font-medium">
           <button
-            onClick={() => { setViewMode("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            onClick={() => setViewMode("home")}
+            className={`nav-link-item cursor-pointer py-1 ${
+              viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf" ? "active" : ""
+            }`}
+          >
+            Converter
+          </button>
+
+          <button
+            onClick={() => setViewMode("tools")}
+            className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 ${
+              viewMode === "tools" ? "active" : ""
+            }`}
+          >
+            <span>Tools &amp; AI</span>
+            <span className="text-[10px] bg-[#E4E0D8]/60 text-[#D98F3D] font-mono font-bold px-1.5 py-0.5 rounded border border-[#E4E0D8]">
+              New
+            </span>
+          </button>
+
+          <button
+            onClick={() => setViewMode("guide")}
+            className={`nav-link-item cursor-pointer py-1 ${
+              viewMode === "guide" ? "active" : ""
+            }`}
+          >
+            Guides &amp; Docs
+          </button>
+
+          <button
+            onClick={() => setViewMode("blog")}
+            className={`nav-link-item cursor-pointer py-1 ${
+              viewMode === "blog" ? "active" : ""
+            }`}
+          >
+            Blog
+          </button>
+
+          <button
+            onClick={() => setViewMode("faq")}
+            className={`nav-link-item cursor-pointer py-1 ${
+              viewMode === "faq" ? "active" : ""
+            }`}
+          >
+            FAQ
+          </button>
+
+          <button
+            onClick={() => setViewMode("about")}
+            className={`nav-link-item cursor-pointer py-1 ${
+              viewMode === "about" ? "active" : ""
+            }`}
+          >
+            About
+          </button>
+
+          <button
+            onClick={() => {
+              setViewMode("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className="ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
           >
             Get Started
           </button>
         </nav>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="lg:hidden p-2 text-[#6B6459] hover:text-[#171B26] hover:bg-[#E4E0D8]/40 rounded-lg cursor-pointer transition-colors"
+          aria-label="Toggle Menu"
+        >
+          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      {/* ── Mobile: two rows ── */}
-      <div className="lg:hidden">
-        {/* Row 1 — Logo + Get Started */}
-        <div className="flex items-center justify-between px-4 h-14">
-          <div
-            onClick={() => setViewMode("home")}
-            className="flex items-center gap-2 cursor-pointer group"
-            id="brand-logo-mobile"
-          >
-            <div className="w-6 h-6 bg-[#171B26] rounded-md flex items-center justify-center transition-transform group-hover:scale-105">
-              <svg className="w-3.5 h-3.5 text-[#F6F4EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <span className="font-display font-bold text-base tracking-tight text-[#171B26]">
-              ConvertOne<span className="text-[#2F6F5E]">AI</span>
-            </span>
-          </div>
+      {/* Mobile Dropdown Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-[#F6F4EE] border-t border-[#E4E0D8] px-6 py-4 space-y-1.5">
           <button
-            onClick={() => { setViewMode("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className="bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-xs"
+            onClick={() => { setViewMode("home"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              viewMode === "home" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
           >
-            Get Started
+            Converter
           </button>
-        </div>
 
-        {/* Row 2 — Scrollable nav links */}
-        <div className="border-t border-[#E4E0D8]/60 overflow-x-auto scrollbar-hide">
-          <nav className="flex items-center gap-0 px-2 text-[11px] font-medium" style={{ width: "max-content" }}>
-            {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={link.onClick}
-                className={`nav-link-item cursor-pointer px-3 py-2.5 flex items-center gap-1 whitespace-nowrap ${link.active ? "active" : ""}`}
-              >
-                <span>{link.label}</span>
-                {link.badge && (
-                  <span className="text-[9px] bg-[#E4E0D8]/60 text-[#D98F3D] font-mono font-bold px-1 py-0.5 rounded border border-[#E4E0D8]">
-                    {link.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+          <button
+            onClick={() => { setViewMode("tools"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors flex items-center justify-between ${
+              viewMode === "tools" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
+          >
+            <span>Tools &amp; AI</span>
+            <span className="text-[10px] font-mono font-bold bg-[#D98F3D] text-white px-2 py-0.5 rounded-full">New</span>
+          </button>
+
+          <button
+            onClick={() => { selectPreconfigMode("docx"); setMobileMenuOpen(false); }}
+            className="block w-full text-left px-3 py-2.5 text-sm font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26] rounded-lg cursor-pointer transition-colors"
+          >
+            Word to Markdown
+          </button>
+
+          <button
+            onClick={() => { selectPreconfigMode("pdf"); setMobileMenuOpen(false); }}
+            className="block w-full text-left px-3 py-2.5 text-sm font-medium text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26] rounded-lg cursor-pointer transition-colors"
+          >
+            PDF to Markdown
+          </button>
+
+          <button
+            onClick={() => { setViewMode("guide"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              viewMode === "guide" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
+          >
+            Guides &amp; Docs
+          </button>
+
+          <button
+            onClick={() => { setViewMode("blog"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              viewMode === "blog" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
+          >
+            Blog
+          </button>
+
+          <button
+            onClick={() => { setViewMode("faq"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              viewMode === "faq" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
+          >
+            FAQ
+          </button>
+
+          <button
+            onClick={() => { setViewMode("about"); setMobileMenuOpen(false); }}
+            className={`block w-full text-left px-3 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors ${
+              viewMode === "about" ? "text-[#171B26] bg-[#E4E0D8]/60" : "text-[#6B6459] hover:bg-[#E4E0D8]/50 hover:text-[#171B26]"
+            }`}
+          >
+            About
+          </button>
+
+          <div className="pt-1">
+            <button
+              onClick={() => { setViewMode("home"); setMobileMenuOpen(false); }}
+              className="w-full text-center py-2.5 text-sm font-semibold text-[#F6F4EE] bg-[#171B26] hover:bg-[#2A3040] rounded-xl cursor-pointer transition-colors"
+            >
+              Get Started
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
