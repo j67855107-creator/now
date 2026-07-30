@@ -88,6 +88,10 @@ h1, h2, h3, .font-display {
   background: #6B6459;
 }
 
+/* Hide scrollbar but keep scroll behaviour (used for mobile nav row) */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 .watermark-container {
   position: relative;
   display: inline-block;
