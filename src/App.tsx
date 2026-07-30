@@ -254,11 +254,11 @@ export default function App() {
             <ul className="space-y-1.5 text-xs text-[#F6F4EE]/70 font-sans">
               <li><button onClick={() => selectPreconfigMode("pdf")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">PDF to Markdown</button></li>
               <li><button onClick={() => selectPreconfigMode("docx")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Word to Markdown</button></li>
-              <li><button onClick={() => { setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">HTML to Markdown</button></li>
-              <li><button onClick={() => { setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Image OCR</button></li>
-              <li><button onClick={() => handleToolClick("ai-summary")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">AI Document Summary</button></li>
+              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">HTML to Markdown</button></li>
+              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Image OCR</button></li>
+              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">AI Document Summary</button></li>
               <li><button onClick={() => handleToolClick("prompt-generator")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prompt Generator</button></li>
-              <li><button onClick={() => { setViewMode("tools"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prepare for AI (RAG)</button></li>
+              <li><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Prepare for AI (RAG)</button></li>
               <li className="pt-1"><button onClick={() => setViewMode("tools")} className="hover:text-[#F6F4EE] text-[#2F6F5E] font-mono font-medium transition-colors flex items-center gap-1 text-left cursor-pointer">View All Tools →</button></li>
             </ul>
           </div>
@@ -269,7 +269,7 @@ export default function App() {
               <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Getting Started</button></li>
               <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Markdown Guide</button></li>
               <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">RAG Guide</button></li>
-              <li><button onClick={() => setViewMode("guide")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">JSONL Guide</button></li>
+              <li><button onClick={() => { sessionStorage.setItem("guide_tab", "jsonl"); setViewMode("guide"); }} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">JSONL Guide</button></li>
               <li><button onClick={() => setViewMode("blog")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">Blog</button></li>
               <li><button onClick={() => setViewMode("faq")} className="hover:text-[#F6F4EE] transition-colors text-left cursor-pointer">FAQ</button></li>
             </ul>

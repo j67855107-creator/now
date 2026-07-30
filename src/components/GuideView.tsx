@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Sparkles,
@@ -20,6 +20,14 @@ interface GuideViewProps {
 
 export default function GuideView({ setViewMode }: GuideViewProps) {
   const [activeTab, setActiveTab] = useState<string>("getting-started");
+
+  useEffect(() => {
+    const savedTab = sessionStorage.getItem("guide_tab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+      sessionStorage.removeItem("guide_tab");
+    }
+  }, []);
 
   const tabs = [
     { id: "getting-started", label: "Getting Started", icon: Zap },

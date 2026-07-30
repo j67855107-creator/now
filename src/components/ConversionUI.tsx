@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Zap,
   ShieldCheck,
@@ -66,7 +66,7 @@ export default function ConversionUI({
   fileInputRef,
   loadingStep,
 }: ConversionUIProps) {
-  const [mockupMode, setMockupMode] = useState<"editor" | "preview" | "ast">("editor");
+  const [mockupMode, setMockupMode] = useState<"editor" | "preview">("editor");
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [dragActiveLocal, setDragActiveLocal] = useState(false);
   const [aiOptions, setAiOptions] = useState<AIOptions>({
@@ -482,7 +482,6 @@ console.log("Welcome to ConvertOneAI!");
                 <div className="flex bg-[#E4E0D8]/60 rounded-md p-0.5">
                   <button onClick={() => setMockupMode("editor")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "editor" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>Editor</button>
                   <button onClick={() => setMockupMode("preview")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "preview" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>Preview</button>
-                  <button onClick={() => setMockupMode("ast")} className={`px-3 py-1 text-[10px] font-mono font-semibold rounded cursor-pointer transition-all ${mockupMode === "ast" ? "bg-white shadow-xs text-[#2F6F5E]" : "text-[#6B6459] hover:text-[#171B26]"}`}>AST Inspector</button>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -526,35 +525,9 @@ console.log("Welcome to ConvertOneAI!");
                   <p className="text-[#2F6F5E] font-mono">```</p>
                 </div>
               </div>
-            ) : mockupMode === "preview" ? (
+            ) : (
               <div className="flex-grow overflow-y-auto max-h-[380px] p-6 font-mono text-xs text-[#171B26] space-y-4">
                 <MarkdownPreview markdown={mockupMarkdown} />
-              </div>
-            ) : (
-              /* AST Semantic Tree Inspector */
-              <div className="flex-grow overflow-y-auto bg-[#171B26] text-[#F6F4EE] max-h-[380px] p-6 font-mono text-xs space-y-3">
-                <div className="flex items-center justify-between border-b border-[#6B6459]/40 pb-2 text-[10px] text-[#E4E0D8]">
-                  <span>TRANSPILED AST NODES</span>
-                  <span>TOKEN BUFFER: 184 TOKENS</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
-                    <span className="text-[#2F6F5E] font-bold">DocumentHeaderNode</span> <span className="text-[#6B6459]">[Level 1]</span>
-                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">"Welcome to ConvertOneAI"</p>
-                  </div>
-                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
-                    <span className="text-[#D98F3D] font-bold">PipeTableNode</span> <span className="text-[#6B6459]">[Rows: 3, Cols: 2]</span>
-                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">Columns: ["Param", "Value"] | Aligned: True</p>
-                  </div>
-                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
-                    <span className="text-[#2F6F5E] font-bold">CodeFenceNode</span> <span className="text-[#6B6459]">[Lang: javascript]</span>
-                    <p className="text-[#F6F4EE] text-[11px] mt-0.5">console.log("Welcome to ConvertOneAI!");</p>
-                  </div>
-                  <div className="bg-[#171B26] border border-[#6B6459]/40 p-2.5 rounded-lg">
-                    <span className="text-[#D98F3D] font-bold">VectorChunkNode</span> <span className="text-[#6B6459]">[RAG Window: 512 tokens]</span>
-                    <p className="text-[#F6F4EE]/80 text-[11px] mt-0.5">Overlap Buffer: 50 tokens | EmbedReady: True</p>
-                  </div>
-                </div>
               </div>
             )}
 
