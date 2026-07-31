@@ -9,6 +9,9 @@ export type ToolCategory =
   | "export"
   | "media";
 
+/** Which URL namespace this tool belongs to */
+export type ToolUrlGroup = "converters" | "ai-tools";
+
 export type ToolStatus = "stable" | "beta" | "experimental";
 
 export interface ToolPluginContext {
@@ -32,9 +35,15 @@ export interface ToolPlugin {
   shortDescription: string;
   fullDescription: string;
   category: ToolCategory;
+  /**
+   * URL namespace. Conversion/media tools live under /converters/*;
+   * AI-powered tools live under /ai-tools/*.
+   */
+  urlGroup: ToolUrlGroup;
+  /** Canonical path e.g. "/converters/pdf-to-markdown" or "/ai-tools/document-summary" */
   route: string;
   iconName: string;
-  supportedFormats: string[]; // e.g. ["pdf", "docx", "pptx", "xlsx", "html", "epub", "png", "jpg", "url", "audio", "video"]
+  supportedFormats: string[];
   featured?: boolean;
   status: ToolStatus;
   badges: string[];

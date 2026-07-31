@@ -16,7 +16,15 @@
 }
 
 body {
-  background-color: #F6F4EE;
+  background-color: #FFFFFF;
+  background-image: linear-gradient(
+    180deg,
+    #d7d7e6 0%,
+    #e6e6ef 45%,
+    #FFFFFF 100%
+  );
+  background-size: 100% 800px;
+  background-repeat: no-repeat;
   color: #171B26;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

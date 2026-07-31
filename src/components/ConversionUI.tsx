@@ -235,15 +235,15 @@ console.log("Welcome to ConvertOneAI!");
             <div className="space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#FAF8F3] text-[#2F6F5E] font-mono text-xs border border-[#E4E0D8]">
                 <ShieldCheck size={13} className="stroke-[2]" />
-                <span>// [ ai document intelligence platform ]</span>
+                <span>Intelligent Document Processing</span>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold font-display text-[#171B26] leading-tight tracking-tight">
                 {viewMode === "convert-word" && <>Word to Markdown Converter — Clean &amp; AI-Ready</>}
                 {viewMode === "convert-pdf" && <>PDF to Markdown Converter — High Accuracy</>}
-                {viewMode === "home" && <>Enterprise AI Document Processing &amp; Conversion Platform</>}
+                {viewMode === "home" && <>Turn complex documents into clean, usable content.</>}
               </h1>
               <p className="text-[#6B6459] text-sm md:text-base leading-relaxed max-w-lg font-sans">
-                Upload files to instantly parse layout noise, structure Markdown, generate prompts, and build RAG vector datasets for AI models.
+                Upload your messy PDFs, Word files, and images. We instantly extract the content, preserve the structure, and output pristine Markdown ready for your apps or AI models.
               </p>
 
               {/* 3-Step Workflow Indicator */}
@@ -454,22 +454,19 @@ console.log("Welcome to ConvertOneAI!");
                 <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
                   <svg className="w-3 h-3 text-[#2F6F5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                 </div>
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Privacy</p>
-                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">Post-transpile volatile purge</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Free to use</p>
               </div>
               <div className="bg-[#FAF8F3] p-3 py-3.5 rounded-xl border border-[#E4E0D8] text-center shadow-xs">
                 <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
                   <svg className="w-3 h-3 text-[#2F6F5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Speed</p>
-                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">Instant memory processing</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">No sign up</p>
               </div>
               <div className="bg-[#FAF8F3] p-3 py-3.5 rounded-xl border border-[#E4E0D8] text-center shadow-xs">
                 <div className="w-6 h-6 bg-white border border-[#E4E0D8] rounded-full flex items-center justify-center mb-1.5 mx-auto">
                   <svg className="w-3 h-3 text-[#D98F3D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Secure</p>
-                <p className="text-[9px] text-[#6B6459] mt-0.5 leading-tight">SSL encrypted connection</p>
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6B6459]">Privacy first</p>
               </div>
             </div>
           </div>

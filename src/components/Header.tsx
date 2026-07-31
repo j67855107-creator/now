@@ -1,35 +1,38 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { ViewMode } from "../types";
+import { ViewMode } from "../types"; // Kept for interface compatibility
+import { useAppContext } from "../contexts/AppContext";
+import MobileMenu from "./navigation/MobileMenu";
 
 interface HeaderProps {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  selectPreconfigMode: (mode: "docx" | "pdf") => void;
-  triggerAlert: (type: "success" | "error" | "info", text: string) => void;
+  // Legacy props kept for compatibility, though we'll use Link and useLocation directly
+  viewMode?: ViewMode;
+  setViewMode?: (mode: ViewMode) => void;
+  selectPreconfigMode?: (mode: "docx" | "pdf") => void;
+  triggerAlert?: (type: "success" | "error" | "info", text: string) => void;
 }
 
 export default function Header({
-  viewMode,
-  setViewMode,
   selectPreconfigMode,
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const path = location.pathname;
+  const ctx = useAppContext();
+  
+  // Safe fallback to context if not passed as prop
+  const handleSelectPreconfigMode = selectPreconfigMode || ctx.selectPreconfigMode;
 
-  const handleNavClick = (mode: ViewMode, e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    setViewMode(mode);
-    setMobileMenuOpen(false);
-  };
+  const isActive = (paths: string[]) => paths.includes(path);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#F6F4EE]/90 backdrop-blur-md border-b border-[#E4E0D8] select-none">
+    <header className="sticky top-0 z-40 bg-white border-b border-[#E4E0D8] select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-
         {/* Brand Logo */}
-        <a
-          href="/"
-          onClick={(e) => handleNavClick("home", e)}
+        <Link
+          to="/"
+          onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2.5 cursor-pointer group"
           id="brand-logo"
         >
@@ -41,84 +44,73 @@ export default function Header({
           <span className="font-display font-bold text-lg tracking-tight text-[#171B26]">
             ConvertOne<span className="text-[#2F6F5E]">AI</span>
           </span>
-        </a>
+        </Link>
 
         {/* Desktop Navigation (lg and above) */}
         <nav className="hidden lg:flex items-center gap-5 text-xs font-medium">
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("home", e)}
+          <Link
+            to="/"
             className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
-              viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf" ? "active" : ""
+              isActive(["/", "/converters/word-to-markdown", "/converters/pdf-to-markdown"]) ? "active" : ""
             }`}
           >
             Converter
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("tools", e)}
+          <Link
+            to="/ai-tools"
             className={`nav-link-item cursor-pointer py-1 flex items-center gap-1.5 whitespace-nowrap ${
-              viewMode === "tools" ? "active" : ""
+              isActive(["/ai-tools"]) ? "active" : ""
             }`}
           >
             <span>Tools &amp; AI</span>
             <span className="text-[10px] bg-[#E4E0D8]/60 text-[#D98F3D] font-mono font-bold px-1.5 py-0.5 rounded border border-[#E4E0D8]">
               New
             </span>
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("guide", e)}
+          <Link
+            to="/guides"
             className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
-              viewMode === "guide" ? "active" : ""
+              isActive(["/guides"]) ? "active" : ""
             }`}
           >
             Guides &amp; Docs
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("blog", e)}
+          <Link
+            to="/blog"
             className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
-              viewMode === "blog" ? "active" : ""
+              isActive(["/blog"]) ? "active" : ""
             }`}
           >
             Blog
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("faq", e)}
+          <Link
+            to="/faq"
             className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
-              viewMode === "faq" ? "active" : ""
+              isActive(["/faq"]) ? "active" : ""
             }`}
           >
             FAQ
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("about", e)}
+          <Link
+            to="/about"
             className={`nav-link-item cursor-pointer py-1 whitespace-nowrap ${
-              viewMode === "about" ? "active" : ""
+              isActive(["/about"]) ? "active" : ""
             }`}
           >
             About
-          </a>
+          </Link>
 
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setViewMode("home");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
+          <Link
+            to="/"
             className="ml-2 bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-xs font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap"
           >
             Get Started
-          </a>
+          </Link>
         </nav>
 
         {/* Mobile Hamburger Toggle Button (mobile only) */}
@@ -133,123 +125,7 @@ export default function Header({
       </div>
 
       {/* Mobile Dropdown Panel */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#F6F4EE] border-b border-[#E4E0D8] px-6 py-4 space-y-2 shadow-lg animate-in slide-in-from-top-2 duration-200">
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("home", e)}
-            className={`block px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "home" || viewMode === "convert-word" || viewMode === "convert-pdf"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            Converter
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("tools", e)}
-            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "tools"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            <span>Tools &amp; AI</span>
-            <span className="text-[10px] bg-[#D98F3D] text-white font-mono font-bold px-2 py-0.5 rounded-full">
-              New
-            </span>
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              selectPreconfigMode("docx");
-              setMobileMenuOpen(false);
-            }}
-            className="block px-3.5 py-2 rounded-xl text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/60 hover:text-[#171B26] transition-all pl-6"
-          >
-            ↳ Word to Markdown
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              selectPreconfigMode("pdf");
-              setMobileMenuOpen(false);
-            }}
-            className="block px-3.5 py-2 rounded-xl text-xs font-medium text-[#6B6459] hover:bg-[#E4E0D8]/60 hover:text-[#171B26] transition-all pl-6"
-          >
-            ↳ PDF to Markdown
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("guide", e)}
-            className={`block px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "guide"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            Guides &amp; Docs
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("blog", e)}
-            className={`block px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "blog"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            Blog
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("faq", e)}
-            className={`block px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "faq"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            FAQ
-          </a>
-
-          <a
-            href="#"
-            onClick={(e) => handleNavClick("about", e)}
-            className={`block px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              viewMode === "about"
-                ? "bg-[#2F6F5E] text-[#F6F4EE] font-semibold"
-                : "text-[#171B26] hover:bg-[#E4E0D8]/60"
-            }`}
-          >
-            About
-          </a>
-
-          <div className="pt-2">
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setViewMode("home");
-                setMobileMenuOpen(false);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="block w-full text-center bg-[#171B26] hover:bg-[#2A3040] text-[#F6F4EE] text-sm font-semibold py-3 rounded-xl shadow-xs transition-all cursor-pointer"
-            >
-              Get Started
-            </a>
-          </div>
-        </div>
-      )}
+      {mobileMenuOpen && <MobileMenu onClose={() => setMobileMenuOpen(false)} />}
     </header>
   );
 }
